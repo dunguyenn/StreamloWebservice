@@ -9,7 +9,14 @@ var trackModel = new Schema({
 	numLikes: {type: Number},
 	dateUploaded: {type: Date},
 	track: {type: Buffer},
-	comments: {type: [String]}
+	comments: [{body: String, date: Date}]
 });
+
+// Possible use child schema for comments
+/*
+var commentsSchema = new Schema({
+
+});
+*/
 
 module.exports = mongoose.model('Track', trackModel);

@@ -1,26 +1,53 @@
+/**
+ * Module dependencies.
+ */
 var express = require('express');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser')
+var dotenv = require('dotenv');
+var track = require('./models/trackModel');
+
+/**
+ * Load environment variables from .env file, where DB URIs etc are configured.
+ */
+dotenv.load();
 
 var tracksRouter = require('./routes/tracks');
 var usersRouter = require('./routes/users');
 
-var db = mongoose.connect('mongodb://localhost/StreamloWebServiceDB');
-var track = require('./models/trackModel');
+/**
+ * Connect to MongoDB.
+ */
+var db = mongoose.connect(process.env.MONGODB);
+mongoose.connection.on('error', function() {
+  console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
+  process.exit(1);
+});
 
+
+/**
+ * Create Express server.
+ */
 var app = express();
-var port =  process.env.port ||  3001;
 
-// Binding application-level middleware to an instance of the app object
+
+/**
+ * Express configuration.
+ */
+// app.use is Binding application-level middleware to an instance of the app object
+app.set('port', process.env.PORT || 3001);
+//var port =  process.env.port ||  3001;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/tracks', tracksRouter);
 app.use('/users', usersRouter);
 
+
+
 app.get('/', function(req, res){
      res.send('Welcome to my API!');
 });
 
-app.listen(port, function(){
-   console.log('Running on port: ' + port );
+app.listen(app.get('port'), function(){
+   console.log('Express server listening on port ' + app.get('port'));
 });

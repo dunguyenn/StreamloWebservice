@@ -1,7 +1,7 @@
 var Track = require('../models/trackModel.js');
 
 exports.getTracksByTitle = function(req, res) {
-    var trackTitle = req.params.trackTitle;
+    var trackTitle = req.query.q;
     var query = Track.find({ title : trackTitle });
 
     query.sort({numPlays: 'desc'})

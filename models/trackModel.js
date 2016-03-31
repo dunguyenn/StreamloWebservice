@@ -15,7 +15,11 @@ var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are 
 // TODO Complete dateUploadedValidator
 var dateUploadedValidator = [ // Only dates after date.now permitted
     function (val) {
-		return true
+        if(val < Date.now()){
+            return false;
+        } else {
+            return true
+        }
     },
     // Customer error text...
     'Enter a valid date'
@@ -26,6 +30,7 @@ var genreEnu = {
   values: 'Pop Rock Dance Country Alternative'.split(' '),
   message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
 }
+
 
 var trackSchema = new Schema({
 	title: {
@@ -61,7 +66,12 @@ var trackSchema = new Schema({
 	track: {
 		type: Buffer },
 	comments: [{
-        body: String, date: Date }],
+        user: Schema.Types.ObjectId,
+        datePosted: Date,
+        body: String
+    }]
 });
+
+
 
 module.exports = mongoose.model('Track', trackSchema);

@@ -36,9 +36,13 @@ exports.postTrack = function(req, res) {
         numPlays: req.body.numPlays,
         numLikes: req.body.numLikes,
         dateUploaded: req.body.dateUploaded,
-        //track: ,
-        comments: req.body.comments
+        comments: [{
+            user: req.body.user,
+            comment: req.body.comment,
+            body: req.body.body
+        }]
     });
+
 
     entry.save(function(err) {
         if(err){

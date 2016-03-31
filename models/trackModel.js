@@ -60,8 +60,8 @@ var trackSchema = new Schema({
 		validate: dateUploadedValidator},
 	track: {
 		type: Buffer },
-	comments: {
-		type: String }
+	comments: [{
+        body: String, date: Date }],
 });
 
 module.exports = mongoose.model('Track', trackSchema);

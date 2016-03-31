@@ -3,8 +3,21 @@ var User = require('../models/userModel.js');
 
 // TODO add search people functionality
 exports.getUserByName = function(req, res) {
-    var requestedUsername = req.params.userName;
-    var query = User.find({ userName : requestedUsername });
+    var requestedUsername = req.query.q;
+    var query = User.find({ displayName : requestedUsername });
+
+    query.limit(10)
+        .exec(function(err, results){
+            if(err)
+                res.status(500).send(err);
+            else
+                res.json(results);
+        });
+};
+
+exports.getNumberOfPeopleByDisplayName = function(req, res) {
+    var displayName = req.query.q;
+    var query = User.count({ displayName : displayName });
 
     query.exec(function(err, results){
             if(err)

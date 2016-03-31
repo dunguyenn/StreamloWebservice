@@ -39,5 +39,10 @@ var userModel = new Schema({
     //Playlists: [{type: objectId}],
 });
 
+var TrackSchema = new Schema({
+    name: {
+        type: String },
+});
+
 
 module.exports = mongoose.model('User', userModel);

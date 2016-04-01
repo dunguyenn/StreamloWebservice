@@ -12,7 +12,7 @@ router.get('/getNumOfPeople', function(req, res) {
     return userController.getNumberOfPeopleByDisplayName(req, res)
 });
 
-router.post('/userName', function(req, res) {
+router.post('/', function(req, res) {
     return userController.createUserAccount(req, res)
 });
 

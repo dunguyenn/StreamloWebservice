@@ -27,6 +27,10 @@ exports.getNumberOfTracksByTitle = function(req, res) {
 };
 
 exports.postTrack = function(req, res) {
+    var comments = [];
+    var com1 = { user: req.body.user, comment: req.body.comment, body: req.body.body }
+    comments.push(com1);
+
     var entry = new Track({
         title: req.body.title,
         artist: req.body.artist,
@@ -36,11 +40,14 @@ exports.postTrack = function(req, res) {
         numPlays: req.body.numPlays,
         numLikes: req.body.numLikes,
         dateUploaded: req.body.dateUploaded,
+        comments : comments
+        /*
         comments: [{
             user: req.body.user,
             comment: req.body.comment,
             body: req.body.body
         }]
+        */
     });
 
 

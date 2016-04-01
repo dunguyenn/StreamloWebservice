@@ -28,12 +28,24 @@ exports.getNumberOfPeopleByDisplayName = function(req, res) {
 };
 
 exports.createUserAccount = function(req, res) {
+    var likedTracks = [];
+    var track1 = { likedTrack: req.body.likedTrackId }
+    var track2 = { likedTrack: req.body.likedTrackId2 }
+    likedTracks.push(track1, track2);
+
+    var followedUsers = []
+    var user1 = { followedUser: req.body.followedUserId }
+    var user2 = { followedUser: req.body.followedUserId2 }
+    followedUsers.push(user1, user2);
+
     var entry = new User({
         email: req.body.email,
         password: req.body.password,
         userURL: req.body.userURL,
         displayName: req.body.displayName,
-        city: req.body.city
+        city: req.body.city,
+        likedTracks: likedTracks,
+        followedUsers: followedUsers
     });
 
     entry.save(function(err) {
@@ -44,4 +56,8 @@ exports.createUserAccount = function(req, res) {
             res.redirect(301, '/');
         }
     });
+};
+
+exports.addLikedTrackToUser = function(req, res) {
+
 };

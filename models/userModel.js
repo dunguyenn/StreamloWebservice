@@ -15,27 +15,60 @@ function toLower(val){
     return val.toLowerCase();
 }
 
+var ObjectId = Schema.Types.ObjectId;
 var userModel = new Schema({
 	email: {
         type: String,
         required: true,
         unique: true,
         set: toLower,
-        validate: emailAddressValidator },
+        validate: emailAddressValidator
+    },
     password: {
         type: String,
-        required: true, },
+        required: true,
+    },
     userURL: { // This will be users unique page url
         type: String,
         required: true,
-        unique: true, }, // Must be unique
+        unique: true,
+    }, // Must be unique
     displayName: {
-        type: String, },
+        type: String,
+    },
     city: {
         type: String,
-        required: true },
-    //likedTracks: [{type: objectId }],
-    //FollowedUsers: [type: objectId}],
+        required: true,
+        maxlength: 20,
+        minLength: 5
+    },
+    numberOfFollowers: {
+        type: Number
+    },
+    numberOfFollowedUsers: {
+        type: Number
+    },
+    description: {
+        type: String,
+        maxlength: 100
+    },
+    likedTracks: [{
+        likedTrack: {
+            type: ObjectId,
+        }
+    }],
+    followedUsers: [{
+        followedUser: {
+            type: ObjectId,
+        }
+    }],
+    uploadedTracks: [{
+        uploadedTrackId: {
+            type: ObjectId
+        }
+    }],
+
+
     //Playlists: [{type: objectId}],
 });
 

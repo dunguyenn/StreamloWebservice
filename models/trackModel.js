@@ -36,35 +36,45 @@ var trackSchema = new Schema({
 	title: {
 		type: String,
 		required: true,
-	 	maxlength: 100 },
+	 	maxlength: 100
+    },
 	artist: {
 		type: String,
 		required: true,
-		maxlength: 50 },
+		maxlength: 50
+    },
 	genre: {
 		type: String,
 		required: true,
-	 	enum: genreEnu },
+	 	enum: genreEnu
+    },
 	description: {
 		type: String,
-	 	maxlength: 4000 },
+	 	maxlength: 4000
+    },
 	trackURL: { // Unique URL track will reside on
 		type: String,
 		unique: true,
 		maxlength: 255, // A Track URL must be between 3 and 255 characters
 		minlength: 3,
-		validate: trackURLValidator },
+		validate: trackURLValidator
+    },
 	tags: {
-		type: String },
+		type: String
+    },
 	numPlays: {
-		type: Number },
+		type: Number
+    },
 	numLikes: {
-		type: Number },
+		type: Number
+    },
 	dateUploaded: {
 		type: Date,
-		validate: dateUploadedValidator},
+		validate: dateUploadedValidator
+    },
 	track: {
-		type: Buffer },
+		type: Buffer
+    },
 	comments: [{
         user: Schema.Types.ObjectId,
         datePosted: Date,

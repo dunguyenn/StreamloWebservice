@@ -29,7 +29,7 @@ var dateUploadedValidator = [ // Only dates after date.now permitted
 var genreEnu = {
   values: 'Pop Rock Dance Country Alternative'.split(' '),
   message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
-}
+};
 
 
 var trackSchema = new Schema({

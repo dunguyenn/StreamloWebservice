@@ -11,6 +11,12 @@ var emailAddressValidator = [
     'Enter a valid email address.'
 ];
 
+//// Custom emunerations
+var cityEnu = {
+  values: 'Belfast Derry-Londonderry'.split(' '),
+  message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
+};
+
 function toLower(val){
     return val.toLowerCase();
 }
@@ -35,18 +41,26 @@ var userModel = new Schema({
     }, // Must be unique
     displayName: {
         type: String,
+        required: true
     },
     city: {
         type: String,
         required: true,
         maxlength: 20,
-        minLength: 5
+        minLength: 5,
+        enum: cityEnu
     },
     numberOfFollowers: {
-        type: Number
+        type: Number,
+        default: 0
     },
     numberOfFollowedUsers: {
-        type: Number
+        type: Number,
+        default: 0
+    },
+    numberOfTracksUploaded: {
+        type: Number,
+        default: 0
     },
     description: {
         type: String,

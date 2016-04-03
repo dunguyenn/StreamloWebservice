@@ -5,7 +5,7 @@ exports.getTracksByTitle = function(req, res) {
     var query = Track.find({ title : trackTitle });
 
     query.sort({numPlays: 'desc'})
-        .limit(10)
+        .limit(5)
         .exec(function(err, results){
             if(err)
                 res.status(500).send(err);

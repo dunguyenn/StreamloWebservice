@@ -3,27 +3,25 @@
  */
 var express = require('express');
 var mongoose = require('mongoose');
+var grid = require('gridfs-stream');
 var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
-var track = require('./models/trackModel');
 
 /**
  * Load environment variables from .env file, where DB URIs etc are configured.
  */
 dotenv.load();
 
-var tracksRouter = require('./routes/tracks');
-var usersRouter = require('./routes/users');
-
 /**
  * Connect to MongoDB.
  */
 var db = mongoose.connect(process.env.MONGODB);
+var conn = mongoose.connection;
 mongoose.connection.on('error', function() {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
   process.exit(1);
 });
-
+grid.mongo = mongoose.mongo;
 
 /**
  * Create Express server.
@@ -38,6 +36,12 @@ var app = express();
 app.set('port', process.env.PORT || 3001);
 app.use(bodyParser.json()); //// for parsing application/json
 app.use(bodyParser.urlencoded({ extended: false })); // for parsing application/x-www-form-urlencoded
+
+/**
+ * Routes configuration.
+ */
+var tracksRouter = require('./routes/tracks');
+var usersRouter = require('./routes/users');
 app.use('/tracks', tracksRouter);
 app.use('/users', usersRouter);
 

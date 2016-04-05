@@ -31,7 +31,7 @@ var genreEnu = {
   message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
 };
 
-
+var ObjectId = Schema.Types.ObjectId;
 var trackSchema = new Schema({
 	title: {
 		type: String,
@@ -59,9 +59,6 @@ var trackSchema = new Schema({
 		minlength: 3,
 		validate: trackURLValidator
     },
-	tags: {
-		type: String
-    },
 	numPlays: {
 		type: Number
     },
@@ -72,11 +69,12 @@ var trackSchema = new Schema({
 		type: Date,
 		validate: dateUploadedValidator
     },
-	track: {
-		type: Buffer
+	trackBinary: {
+		type: ObjectId,
+        required: true
     },
 	comments: [{
-        user: Schema.Types.ObjectId,
+        user: ObjectId,
         datePosted: Date,
         body: String
     }]

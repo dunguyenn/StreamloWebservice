@@ -1,4 +1,11 @@
 var Track = require('../models/trackModel.js');
+var mongoose = require('mongoose');
+var fs = require('fs');
+var grid = require('gridfs-stream');
+var conn = mongoose.connection;
+grid.mongo = mongoose.mongo;
+
+
 
 exports.getTracksByTitle = function(req, res) {
     var trackTitle = req.query.q;
@@ -27,42 +34,92 @@ exports.getNumberOfTracksByTitle = function(req, res) {
 };
 
 exports.postTrack = function(req, res) {
-    var comments = [];
-    var com1 = { user: req.body.user, comment: req.body.comment, body: req.body.body }
-    comments.push(com1);
+    console.log(req.body);
+    console.log(req.file);
+    var fileName = req.body.title;
+    var filePath = req.file.path;
+    var filetype = req.file.mimetype;
+
+    var gfs = grid(conn.db);
+
+    // Streaming to gridfs
+    // Filename to store in mongodb
+    var writestream = gfs.createWriteStream({
+        filename: fileName,
+        content_type: 'audio/mp3'
+    });
+    fs.createReadStream(filePath).pipe(writestream);
+
+    writestream.on('close', function (file) {
+        console.log(file);
+        var uploadedFileId = file._id;
+        fs.unlink(filePath);
+        console.log(file.filename + 'Written To DB');
+
+        var entry = new Track({
+            title: req.body.title,
+            artist: req.body.artist,
+            genre: req.body.genre,
+            trackURL: req.body.trackURL,
+            dateUploaded: req.body.dateUploaded,
+            trackBinary: uploadedFileId
+        });
+
+        entry.save(function(err) {
+            if(err){
+                var errMsg = 'Error posting track ' + err;
+                res.send(errMsg);
+            } else {
+                res.sendStatus(200);
+            }
+        });
+    });
+
+
+
+    /*
 
     var entry = new Track({
         title: req.body.title,
         artist: req.body.artist,
         genre: req.body.genre,
         trackURL: req.body.trackURL,
-        tags: req.body.tags,
-        numPlays: req.body.numPlays,
-        numLikes: req.body.numLikes,
-        dateUploaded: req.body.dateUploaded,
-        comments : comments,
-        /*
-        comments: [{
-            user: req.body.user,
-            comment: req.body.comment,
-            body: req.body.body
-        }]
-        */
-        track : req.body.track
+        dateUploaded: req.body.dateUploaded
     });
-    
+
     entry.save(function(err) {
         if(err){
             var errMsg = 'Error posting track ' + err;
             res.send(errMsg);
         } else {
-            res.redirect(301, '/');
+            var gfs = grid(conn.db);
+
+            // Streaming to gridfs
+            // Filename to store in mongodb
+            var writestream = gfs.createWriteStream({
+                filename: fileName,
+                content_type: 'audio/mp3'
+            });
+            fs.createReadStream(filePath).pipe(writestream);
+
+            writestream.on('close', function (file) {
+                console.log(file);
+                fs.unlink(filePath);
+                res.sendStatus(200);
+                console.log(file.filename + 'Written To DB');
+            });
         }
     });
+
+    */
+
+
+
+
 };
 
 // TODO updating track name
-exports.updateTrackByTrackURL = function(req, res) {
+exports.updateTrackTitleByTrackURL = function(req, res) {
     var trackURL = req.params.trackURL;
     var updatedTitle = req.body.title;
     var query = Track.update( { trackURL: trackURL}, { title: updatedTitle} );
@@ -84,4 +141,19 @@ exports.deleteTrackByTrackURL = function(req, res) {
             else
                 res.json("Track deleted");
         });
+};
+
+exports.addCommentByTrackByURL = function(req, res) {
+    /*
+    var comments = [];
+    var com1 = { user: req.body.user, comment: req.body.comment, body: req.body.body }
+    comments.push(com1);
+
+    comments: [{
+        user: req.body.user,
+        comment: req.body.comment,
+        body: req.body.body
+    }]
+    */
+    var trackURL = req.params.trackURL;
 };

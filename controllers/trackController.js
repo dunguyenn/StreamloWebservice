@@ -40,7 +40,7 @@ exports.postTrack = function(req, res) {
         numPlays: req.body.numPlays,
         numLikes: req.body.numLikes,
         dateUploaded: req.body.dateUploaded,
-        comments : comments
+        comments : comments,
         /*
         comments: [{
             user: req.body.user,
@@ -48,9 +48,9 @@ exports.postTrack = function(req, res) {
             body: req.body.body
         }]
         */
+        track : req.body.track
     });
-
-
+    
     entry.save(function(err) {
         if(err){
             var errMsg = 'Error posting track ' + err;

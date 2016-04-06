@@ -3,7 +3,6 @@
  */
 var express = require('express');
 var mongoose = require('mongoose');
-var grid = require('gridfs-stream');
 var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
 
@@ -21,7 +20,6 @@ mongoose.connection.on('error', function() {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
   process.exit(1);
 });
-grid.mongo = mongoose.mongo;
 
 /**
  * Create Express server.

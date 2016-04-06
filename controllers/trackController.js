@@ -1,4 +1,5 @@
 var Track = require('../models/trackModel.js');
+var User = require('../models/userModel.js');
 var mongoose = require('mongoose');
 var fs = require('fs');
 var grid = require('gridfs-stream');
@@ -34,9 +35,11 @@ exports.getNumberOfTracksByTitle = function(req, res) {
 };
 
 exports.postTrack = function(req, res) {
-    console.log(req.body);
-    console.log(req.file);
+    var uploadedFileId;
+
     var fileName = req.body.title;
+    var uploderId = req.body.uploaderId;
+
     var filePath = req.file.path;
     var filetype = req.file.mimetype;
 
@@ -51,8 +54,7 @@ exports.postTrack = function(req, res) {
     fs.createReadStream(filePath).pipe(writestream);
 
     writestream.on('close', function (file) {
-        console.log(file);
-        var uploadedFileId = file._id;
+        uploadedFileId = file._id;
         fs.unlink(filePath);
         console.log(file.filename + 'Written To DB');
 
@@ -70,52 +72,20 @@ exports.postTrack = function(req, res) {
                 var errMsg = 'Error posting track ' + err;
                 res.send(errMsg);
             } else {
+                var query = User.findByIdAndUpdate(
+                    uploderId,
+                    {$push: {"uploadedTracks": {uploadedTrackId: uploadedFileId}}},
+                    {safe: true, upsert: true, new : true},
+                    function(err, model) {
+                        if(err){
+                            console.log(err);
+                        }
+                    }
+                );
                 res.sendStatus(200);
             }
         });
     });
-
-
-
-    /*
-
-    var entry = new Track({
-        title: req.body.title,
-        artist: req.body.artist,
-        genre: req.body.genre,
-        trackURL: req.body.trackURL,
-        dateUploaded: req.body.dateUploaded
-    });
-
-    entry.save(function(err) {
-        if(err){
-            var errMsg = 'Error posting track ' + err;
-            res.send(errMsg);
-        } else {
-            var gfs = grid(conn.db);
-
-            // Streaming to gridfs
-            // Filename to store in mongodb
-            var writestream = gfs.createWriteStream({
-                filename: fileName,
-                content_type: 'audio/mp3'
-            });
-            fs.createReadStream(filePath).pipe(writestream);
-
-            writestream.on('close', function (file) {
-                console.log(file);
-                fs.unlink(filePath);
-                res.sendStatus(200);
-                console.log(file.filename + 'Written To DB');
-            });
-        }
-    });
-
-    */
-
-
-
-
 };
 
 // TODO updating track name

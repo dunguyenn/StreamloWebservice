@@ -6,7 +6,7 @@ var grid = require('gridfs-stream');
 var conn = mongoose.connection;
 grid.mongo = mongoose.mongo;
 
-exports.getTrack = function(req, res) {
+exports.getTrackById = function(req, res) {
     var trackId = req.params.trackId;
     var query = Track.findById(trackId);
 
@@ -16,6 +16,22 @@ exports.getTrack = function(req, res) {
             else
                 res.json(results);
         });
+};
+
+exports.getTrackStreamById = function(req, res) {
+    var trackId = req.params.trackId;
+    var gfs = grid(conn.db);
+
+    gfs.findOne({ _id: trackId}, function (err, file) {
+    if (err) {
+        res.json(err);
+    } else {
+        var mime = 'audio/mp3';
+        res.set('Content-Type', mime);
+        var read_stream = gfs.createReadStream(file);
+        read_stream.pipe(res);
+    }
+    });
 };
 
 exports.getTracksByTitle = function(req, res) {

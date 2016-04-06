@@ -10,6 +10,16 @@ router.get('/', function(req, res) {
     return trackController.getTracksByTitle(req, res);
 });
 
+// GET track information by ID
+router.get('/:trackId', function(req, res) {
+    return trackController.getTrackById(req, res);
+});
+
+// GET stream of track by ID
+router.get('/:trackId/stream', function(req, res) {
+    return trackController.getTrackStreamById(req, res);
+});
+
 // GET number of mathching tracks by title
 router.get('/getNumOfTracks', function(req, res) {
     return trackController.getNumberOfTracksByTitle(req, res);
@@ -18,11 +28,6 @@ router.get('/getNumOfTracks', function(req, res) {
 // POST track to the system
 router.post('/', upload.single('track'), function(req, res) {
     return trackController.postTrack(req, res);
-});
-
-// TODO add getting individual track
-router.get('/:trackId', function(req, res) {
-    return trackController.getTrack(req, res);
 });
 
 router.patch('/:trackURL', function(req, res) {

@@ -82,6 +82,17 @@ exports.postTrack = function(req, res) {
                         }
                     }
                 );
+
+                var query = User.findByIdAndUpdate(
+                    uploderId,
+                    {$inc: {"numberOfTracksUploaded": 1 }},
+                    {safe: true, upsert: true, new : true},
+                    function(err, model) {
+                        if(err){
+                            console.log(err);
+                        }
+                    }
+                );
                 res.sendStatus(200);
             }
         });

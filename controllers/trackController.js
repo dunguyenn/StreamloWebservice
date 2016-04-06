@@ -6,7 +6,17 @@ var grid = require('gridfs-stream');
 var conn = mongoose.connection;
 grid.mongo = mongoose.mongo;
 
+exports.getTrack = function(req, res) {
+    var trackId = req.params.trackId;
+    var query = Track.findById(trackId);
 
+    query.exec(function(err, results){
+            if(err)
+                res.status(500).send(err);
+            else
+                res.json(results);
+        });
+};
 
 exports.getTracksByTitle = function(req, res) {
     var trackTitle = req.query.q;
@@ -64,7 +74,8 @@ exports.postTrack = function(req, res) {
             genre: req.body.genre,
             trackURL: req.body.trackURL,
             dateUploaded: req.body.dateUploaded,
-            trackBinary: uploadedFileId
+            trackBinary: uploadedFileId,
+            uploaderId:  req.body.uploaderId
         });
 
         entry.save(function(err) {

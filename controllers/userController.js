@@ -65,3 +65,15 @@ exports.createUserAccount = function(req, res) {
 exports.addLikedTrackToUser = function(req, res) {
 
 };
+
+exports.getUserById = function(req, res) {
+    var userId = req.params.userId;
+    var query = User.findById(userId, 'userURL');
+
+    query.exec(function(err, results){
+            if(err)
+                res.status(500).send(err);
+            else
+                res.json(results);
+        });
+};

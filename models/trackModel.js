@@ -65,6 +65,10 @@ var trackSchema = new Schema({
 	numLikes: {
 		type: Number
     },
+    uploaderId: {
+		type: ObjectId,
+        required: true
+    },
 	dateUploaded: {
 		type: Date,
 		validate: dateUploadedValidator

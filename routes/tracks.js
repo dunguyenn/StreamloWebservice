@@ -21,8 +21,8 @@ router.post('/', upload.single('track'), function(req, res) {
 });
 
 // TODO add getting individual track
-router.get('/:trackURL', function(req, res) {
-    //
+router.get('/:trackId', function(req, res) {
+    return trackController.getTrack(req, res);
 });
 
 router.patch('/:trackURL', function(req, res) {

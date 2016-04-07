@@ -6,19 +6,7 @@ var grid = require('gridfs-stream');
 var conn = mongoose.connection;
 grid.mongo = mongoose.mongo;
 
-exports.getTrackById = function(req, res) {
-    var trackId = req.params.trackId;
-    var query = Track.findById(trackId);
-
-    query.exec(function(err, results){
-            if(err)
-                res.status(500).send(err);
-            else
-                res.json(results);
-        });
-};
-
-exports.getTrackStreamById = function(req, res) {
+exports.getTrackStreamByGridFSId = function(req, res) {
     var trackId = req.params.trackId;
     var gfs = grid(conn.db);
 
@@ -51,6 +39,18 @@ exports.getTracksByTitle = function(req, res) {
 exports.getNumberOfTracksByTitle = function(req, res) {
     var trackTitle = req.query.q;
     var query = Track.count({ title : trackTitle });
+
+    query.exec(function(err, results){
+            if(err)
+                res.status(500).send(err);
+            else
+                res.json(results);
+        });
+};
+
+exports.getTrackByURL = function(req, res) {
+    var trackURL = req.params.trackURL;
+    var query = Track.findOne({ trackURL : trackURL });
 
     query.exec(function(err, results){
             if(err)

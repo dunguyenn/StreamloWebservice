@@ -60,10 +60,16 @@ var trackSchema = new Schema({
 		validate: trackURLValidator
     },
 	numPlays: {
-		type: Number
+		type: Number,
+        default: 0
     },
 	numLikes: {
-		type: Number
+		type: Number,
+        default: 0
+    },
+    numComments: {
+        type: Number,
+        default: 0
     },
     uploaderId: {
 		type: ObjectId,

@@ -80,16 +80,7 @@ var userModel = new Schema({
         uploadedTrackId: {
             type: ObjectId
         }
-    }],
-
-
-    //Playlists: [{type: objectId}],
+    }]
 });
-
-var TrackSchema = new Schema({
-    name: {
-        type: String },
-});
-
 
 module.exports = mongoose.model('User', userModel);

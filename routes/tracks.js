@@ -10,14 +10,13 @@ router.get('/', function(req, res) {
     return trackController.getTracksByTitle(req, res);
 });
 
-// GET track information by ID
-router.get('/:trackId', function(req, res) {
-    return trackController.getTrackById(req, res);
+router.get('/:trackURL', function(req, res) {
+    return trackController.getTrackByURL(req, res);
 });
 
 // GET stream of track by ID
 router.get('/:trackId/stream', function(req, res) {
-    return trackController.getTrackStreamById(req, res);
+    return trackController.getTrackStreamByGridFSId(req, res);
 });
 
 // GET number of mathching tracks by title
@@ -29,6 +28,9 @@ router.get('/getNumOfTracks', function(req, res) {
 router.post('/', upload.single('track'), function(req, res) {
     return trackController.postTrack(req, res);
 });
+
+// Add description to track by id
+router.post
 
 router.patch('/:trackURL', function(req, res) {
     return trackController.updateTrackTitleByTrackURL(req, res);

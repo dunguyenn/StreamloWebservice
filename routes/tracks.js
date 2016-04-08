@@ -10,6 +10,7 @@ router.get('/', function(req, res) {
     return trackController.getTracksByTitle(req, res);
 });
 
+// GET track by trackURL
 router.get('/:trackURL', function(req, res) {
     return trackController.getTrackByURL(req, res);
 });
@@ -29,8 +30,16 @@ router.post('/', upload.single('track'), function(req, res) {
     return trackController.postTrack(req, res);
 });
 
-// Add description to track by id
-router.post
+// Add comment to track by trackURL
+router.post('/:trackURL/addComment',function(req, res) {
+    return trackController.addCommentToTrackByTrackURL(req, res);
+});
+
+// Add desciption to track by trackURL
+router.post('/:trackURL/addDescription', function(req, res) {
+    //return trackController.addCommentToTrackByTrackURL(req, res);
+});
+
 
 router.patch('/:trackURL', function(req, res) {
     return trackController.updateTrackTitleByTrackURL(req, res);

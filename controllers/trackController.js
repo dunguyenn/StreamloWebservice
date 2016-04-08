@@ -50,7 +50,7 @@ exports.getNumberOfTracksByTitle = function(req, res) {
 
 exports.getTrackByURL = function(req, res) {
     var trackURL = req.params.trackURL;
-    var query = Track.findOne({ trackURL : trackURL });
+    var query = Track.findOne({ trackURL: trackURL });
 
     query.exec(function(err, results){
             if(err)
@@ -151,17 +151,20 @@ exports.deleteTrackByTrackURL = function(req, res) {
         });
 };
 
-exports.addCommentByTrackByURL = function(req, res) {
-    /*
-    var comments = [];
-    var com1 = { user: req.body.user, comment: req.body.comment, body: req.body.body }
-    comments.push(com1);
-
-    comments: [{
-        user: req.body.user,
-        comment: req.body.comment,
-        body: req.body.body
-    }]
-    */
+exports.addCommentToTrackByTrackURL = function(req, res) {
+    var com = { user: req.body.user, datePosted: req.body.date, body: req.body.body }
     var trackURL = req.params.trackURL;
+
+    var query = Track.findOneAndUpdate(
+        {trackURL: trackURL},
+        {$push: {"comments": com}},
+        {safe: true, upsert: false, new : false},
+        function(err, model) {
+            if(err){
+                console.log(err);
+                res.sendStatus(500);
+            }
+        }
+    );
+    res.sendStatus(200);
 };

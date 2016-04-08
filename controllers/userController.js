@@ -66,9 +66,21 @@ exports.addLikedTrackToUser = function(req, res) {
 
 };
 
+exports.getUserByURL = function(req, res) {
+    var userURL = req.params.userURL;
+    var query = User.findOne({userURL: userURL});
+
+    query.exec(function(err, results){
+            if(err)
+                res.status(500).send(err);
+            else
+                res.json(results);
+        });
+};
+
 exports.getUserById = function(req, res) {
     var userId = req.params.userId;
-    var query = User.findById(userId, 'userURL');
+    var query = User.findOne({_id: userId});
 
     query.exec(function(err, results){
             if(err)

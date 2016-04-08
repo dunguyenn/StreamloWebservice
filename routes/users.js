@@ -7,8 +7,14 @@ router.get('/', function(req, res) {
     return userController.getUserByName(req, res);
 });
 
-// GET user information by ID
-router.get('/:userId', function(req, res) {
+
+// GET user information by userURL
+router.get('/:userURL', function(req, res) {
+    return userController.getUserByURL(req, res);
+});
+
+// GET user by mongoID
+router.get('/id/:userId', function(req, res) {
     return userController.getUserById(req, res);
 });
 

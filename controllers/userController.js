@@ -1,4 +1,9 @@
 var User = require('../models/userModel.js');
+var mongoose = require('mongoose');
+var fs = require('fs');
+var grid = require('gridfs-stream');
+var conn = mongoose.connection;
+grid.mongo = mongoose.mongo;
 
 
 // TODO add search people functionality
@@ -9,7 +14,7 @@ exports.getUserByName = function(req, res) {
     query.limit(10)
         .exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });
@@ -21,45 +26,62 @@ exports.getNumberOfPeopleByDisplayName = function(req, res) {
 
     query.exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });
 };
 
 exports.createUserAccount = function(req, res) {
-    /*
-    var likedTracks = [];
-    var track1 = { likedTrack: req.body.likedTrackId }
-    var track2 = { likedTrack: req.body.likedTrackId2 }
-    likedTracks.push(track1, track2);
+    var uploadedFileId;
 
-    var followedUsers = []
-    var user1 = { followedUser: req.body.followedUserId }
-    var user2 = { followedUser: req.body.followedUserId2 }
-    followedUsers.push(user1, user2);
-    */
+    var fileName = req.body.email;
 
-    var entry = new User({
-        email: req.body.email,
-        password: req.body.password,
-        userURL: req.body.userURL,
-        displayName: req.body.displayName,
-        city: req.body.city
-        /*
-        likedTracks: likedTracks,
-        followedUsers: followedUsers
-        */
+    var filePath = req.file.path;
+    var filetype = req.file.mimetype;
+
+    var gfs = grid(conn.db);
+
+    // Streaming to gridfs
+    // Filename to store in mongodb
+    var writestream = gfs.createWriteStream({
+        filename: fileName,
+        content_type: 'image/jpeg'
+    });
+    fs.createReadStream(filePath).pipe(writestream);
+
+    writestream.on('close', function (file) {
+        uploadedFileId = file._id;
+        console.log(file.filename + 'Written To DB');
+
+        var entry = new User({
+            email: req.body.email,
+            password: req.body.password,
+            userURL: req.body.userURL,
+            displayName: req.body.displayName,
+            city: req.body.city,
+            description: req.body.desciption,
+            profilePictureBinary: uploadedFileId
+        });
+
+        entry.save(function(err) {
+            if(err){
+                gfs.remove({_id: uploadedFileId}, function (gfserr) {
+                  if (gfserr){
+                      console.log("error removing gridfs file");
+                  }
+                  console.log('Removed gridfs file after unsuccessful db update');
+                });
+                fs.unlink(filePath);
+                res.status(500).send(err);
+            } else {
+                fs.unlink(filePath);
+                res.sendStatus(200);
+            }
+        });
     });
 
-    entry.save(function(err) {
-        if(err){
-            var errMsg = 'Error creating user ' + err;
-            res.send(errMsg);
-        } else {
-            res.redirect(301, '/');
-        }
-    });
+
 };
 
 exports.addLikedTrackToUser = function(req, res) {
@@ -72,7 +94,7 @@ exports.getUserByURL = function(req, res) {
 
     query.exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });
@@ -84,7 +106,7 @@ exports.getUserById = function(req, res) {
 
     query.exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });

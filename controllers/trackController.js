@@ -30,7 +30,7 @@ exports.getTracksByTitle = function(req, res) {
         .limit(5)
         .exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });
@@ -42,7 +42,7 @@ exports.getNumberOfTracksByTitle = function(req, res) {
 
     query.exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });
@@ -54,7 +54,7 @@ exports.getTrackByURL = function(req, res) {
 
     query.exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json(results);
         });
@@ -81,7 +81,6 @@ exports.postTrack = function(req, res) {
 
     writestream.on('close', function (file) {
         uploadedFileId = file._id;
-        fs.unlink(filePath);
         console.log(file.filename + 'Written To DB');
 
         var entry = new Track({
@@ -96,16 +95,29 @@ exports.postTrack = function(req, res) {
 
         entry.save(function(err) {
             if(err){
-                var errMsg = 'Error posting track ' + err;
-                res.send(errMsg);
+                gfs.remove({_id: uploadedFileId}, function (gfserr) {
+                  if (gfserr){
+                      console.log("error removing gridfs file");
+                  }
+                  console.log('Removed gridfs file after unsuccessful db update');
+                });
+                fs.unlink(filePath);
+                res.sendStatus(500);
             } else {
                 var query = User.findByIdAndUpdate(
                     uploderId,
                     {$push: {"uploadedTracks": {uploadedTrackId: uploadedFileId}}},
                     {safe: true, upsert: true, new : true},
-                    function(err, model) {
-                        if(err){
-                            console.log(err);
+                    function(gfserr, model) {
+                        if(gfserr){
+                            gfs.remove({_id: uploadedFileId}, function (gfserr) {
+                              if (gfserr){
+                                  console.log("error removing gridfs file");
+                              }
+                              console.log('Removed gridfs file after unsuccessful db update');
+                            });
+                            fs.unlink(filePath);
+                            res.sendStatus(500);
                         }
                     }
                 );
@@ -114,12 +126,20 @@ exports.postTrack = function(req, res) {
                     uploderId,
                     {$inc: {"numberOfTracksUploaded": 1 }},
                     {safe: true, upsert: true, new : true},
-                    function(err, model) {
-                        if(err){
-                            console.log(err);
+                    function(gfserr, model) {
+                        if(gfserr){
+                            gfs.remove({_id: uploadedFileId}, function (gfserr) {
+                              if (gfserr){
+                                  console.log("error removing gridfs file");
+                              }
+                              console.log('Removed gridfs file after unsuccessful db update');
+                            });
+                            fs.unlink(filePath);
+                            res.sendStatus(500);
                         }
                     }
                 );
+                fs.unlink(filePath);
                 res.sendStatus(200);
             }
         });
@@ -134,7 +154,7 @@ exports.updateTrackTitleByTrackURL = function(req, res) {
 
     query.exec(function(err, results){
         if(err)
-            res.status(500).send(err);
+            res.sendStatus(500);
         else
             res.json("Track Title Updated");
     });
@@ -145,7 +165,7 @@ exports.deleteTrackByTrackURL = function(req, res) {
     var query = Track.remove({ trackURL : trackURL });
     query.exec(function(err, results){
             if(err)
-                res.status(500).send(err);
+                res.sendStatus(500);
             else
                 res.json("Track deleted");
         });

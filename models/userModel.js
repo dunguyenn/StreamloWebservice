@@ -66,14 +66,17 @@ var userModel = new Schema({
         type: String,
         maxlength: 100
     },
+    profilePictureBinary: {
+        type: ObjectId
+    },
     likedTracks: [{
         likedTrack: {
-            type: ObjectId,
+            type: ObjectId
         }
     }],
     followedUsers: [{
         followedUser: {
-            type: ObjectId,
+            type: ObjectId
         }
     }],
     uploadedTracks: [{

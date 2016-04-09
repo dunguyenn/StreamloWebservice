@@ -26,8 +26,13 @@ router.get('/getNumOfPeople', function(req, res) {
 });
 
 // POST user account to system
-router.post('/', upload.single('profilePicture'), function(req, res) {
+router.post('/', function(req, res) {
     return userController.createUserAccount(req, res);
+});
+
+// POST picture to user account by userURL
+router.post('/:userURL/addProfilePicture', upload.single('profilePicture'), function(req, res) {
+    return userController.addProfilePictureToUser(req, res);
 });
 
 

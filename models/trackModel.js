@@ -83,6 +83,9 @@ var trackSchema = new Schema({
 		type: ObjectId,
         required: true
     },
+    albumArtBinary: {
+        type: ObjectId
+    },
 	comments: [{
         user: ObjectId,
         datePosted: Date,

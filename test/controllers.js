@@ -17,4 +17,9 @@ describe('controller Tests', function() {
         });
     });
 
+    describe('user controller', function() {
+        it('test', function() {
+        });
+    });
+
 });

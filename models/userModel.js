@@ -33,6 +33,8 @@ var userModel = new Schema({
     password: {
         type: String,
         required: true,
+        maxlength: 50,
+        minLength: 5
     },
     userURL: { // This will be users unique page url
         type: String,

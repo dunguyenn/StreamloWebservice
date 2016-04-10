@@ -61,6 +61,9 @@ exports.getTrackByURL = function(req, res) {
 };
 
 exports.postTrack = function(req, res) {
+    console.log(req.body);
+    console.log(req.file);
+
     var uploadedFileId;
 
     var fileName = req.body.title;
@@ -85,16 +88,16 @@ exports.postTrack = function(req, res) {
 
         var entry = new Track({
             title: req.body.title,
-            artist: req.body.artist,
             genre: req.body.genre,
             trackURL: req.body.trackURL,
             dateUploaded: req.body.dateUploaded,
-            trackBinary: uploadedFileId,
-            uploaderId:  req.body.uploaderId
+            uploaderId:  req.body.uploaderId,
+            description: req.body.description,
+            trackBinary: uploadedFileId
         });
 
-        entry.save(function(err) {
-            if(err){
+        entry.save(function(err) { // Attempt to save track
+            if(err) { // In event of failed track save remove gridfs file
                 gfs.remove({_id: uploadedFileId}, function (gfserr) {
                   if (gfserr){
                       console.log("error removing gridfs file");
@@ -103,13 +106,13 @@ exports.postTrack = function(req, res) {
                 });
                 fs.unlink(filePath);
                 res.sendStatus(500);
-            } else {
+            } else { // In event of sucessful track save add uploaded gridfs trackId to uploaders uploaded files object
                 var query = User.findByIdAndUpdate(
                     uploderId,
                     {$push: {"uploadedTracks": {uploadedTrackId: uploadedFileId}}},
                     {safe: true, upsert: true, new : true},
                     function(gfserr, model) {
-                        if(gfserr){
+                        if(gfserr){  // In event of failed query remove gridfs file
                             gfs.remove({_id: uploadedFileId}, function (gfserr) {
                               if (gfserr){
                                   console.log("error removing gridfs file");
@@ -122,12 +125,13 @@ exports.postTrack = function(req, res) {
                     }
                 );
 
+                // Also increment number of uploaded tracks on uploder
                 var query = User.findByIdAndUpdate(
                     uploderId,
                     {$inc: {"numberOfTracksUploaded": 1 }},
                     {safe: true, upsert: true, new : true},
                     function(gfserr, model) {
-                        if(gfserr){
+                        if(gfserr){ // In event of failed query remove gridfs file
                             gfs.remove({_id: uploadedFileId}, function (gfserr) {
                               if (gfserr){
                                   console.log("error removing gridfs file");

@@ -15,7 +15,10 @@ var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are 
 // TODO Complete dateUploadedValidator
 var dateUploadedValidator = [ // Only dates after date.now permitted
     function (val) {
-        if(val < Date.now()){
+        var date = new Date();
+        date.setHours(date.getHours() - 1);
+
+        if(val < date){
             return false;
         } else {
             return true
@@ -37,11 +40,6 @@ var trackSchema = new Schema({
 		type: String,
 		required: true,
 	 	maxlength: 100
-    },
-	artist: {
-		type: String,
-		required: true,
-		maxlength: 50
     },
 	genre: {
 		type: String,

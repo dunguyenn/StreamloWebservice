@@ -95,6 +95,7 @@ exports.createUserAccount = function(req, res) {
 
     entry.save(function(err) {
         if(err){
+            console.log(err);
             res.status(500).send(err);
         } else {
             res.sendStatus(200);

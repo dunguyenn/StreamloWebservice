@@ -60,6 +60,20 @@ exports.getTrackByURL = function(req, res) {
         });
 };
 
+exports.getChartOfCity = function(req, res) {
+    var requestedCity = req.params.city;
+    var query = Track.find({ city : requestedCity });
+
+    query.sort({numPlays: 'desc'})
+        .limit(10)
+        .exec(function(err, results){
+            if(err)
+                res.sendStatus(500);
+            else
+                res.json(results);
+        });
+};
+
 exports.postTrack = function(req, res) {
     console.log(req.body);
     console.log(req.file);
@@ -89,6 +103,7 @@ exports.postTrack = function(req, res) {
         var entry = new Track({
             title: req.body.title,
             genre: req.body.genre,
+            city: req.body.city,
             trackURL: req.body.trackURL,
             dateUploaded: req.body.dateUploaded,
             uploaderId:  req.body.uploaderId,

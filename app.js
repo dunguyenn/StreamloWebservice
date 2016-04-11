@@ -2,6 +2,7 @@
  * Module dependencies.
  */
 var express = require('express');
+var errorHandler = require('errorhandler');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
@@ -40,9 +41,15 @@ app.use(bodyParser.urlencoded({ extended: false })); // for parsing application/
  */
 var tracksRouter = require('./routes/tracks');
 var usersRouter = require('./routes/users');
+var authRouter = require('./routes/auth');
 app.use('/tracks', tracksRouter);
 app.use('/users', usersRouter);
+app.use('/auth', authRouter);
 
+/**
+ * Error Handler.
+ */
+app.use(errorHandler());
 
 
 app.get('/', function(req, res){

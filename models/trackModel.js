@@ -34,6 +34,11 @@ var genreEnu = {
   message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
 };
 
+var cityEnu = {
+  values: 'Belfast Derry'.split(' '),
+  message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
+};
+
 var ObjectId = Schema.Types.ObjectId;
 var trackSchema = new Schema({
 	title: {
@@ -56,6 +61,13 @@ var trackSchema = new Schema({
 		maxlength: 255, // A Track URL must be between 3 and 255 characters
 		minlength: 3,
 		validate: trackURLValidator
+    },
+    city: {
+        type: String,
+        required: true,
+        maxlength: 20,
+        minLength: 5,
+        enum: cityEnu
     },
 	numPlays: {
 		type: Number,

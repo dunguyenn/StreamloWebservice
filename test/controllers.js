@@ -1,7 +1,5 @@
 "use strict";
 
-// jshint expr: true
-
 var trackController = require('../controllers/trackController');
 
 var chai = require('chai');

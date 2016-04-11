@@ -25,6 +25,11 @@ router.get('/getNumOfTracks', function(req, res) {
     return trackController.getNumberOfTracksByTitle(req, res);
 });
 
+// GET top 10 tracks of city sorted by number of plays
+router.get('/:city/chart', function(req, res) {
+    return trackController.getChartOfCity(req, res);
+});
+
 // POST track to the system
 router.post('/', upload.single('track'), function(req, res) {
     return trackController.postTrack(req, res);

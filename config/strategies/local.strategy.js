@@ -26,7 +26,12 @@ module.exports = function() {
                     console.log("incorrect password");
                     return done(null, false, { message: 'Incorrect password.' });
                 } else {
-                    return done(null, user);
+                    var userInfo = {
+                        _id: user._id,
+                        displayName: user.displayName,
+                        userURL: user.userURL
+                    };
+                    return done(null, userInfo);
                 }
             });
         });

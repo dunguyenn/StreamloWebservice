@@ -6,6 +6,10 @@ var errorHandler = require('errorhandler');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
+var cookieParser = require('cookie-parser');
+var passport = require('passport');
+var session = require('express-session');
+var flash = require('express-flash');
 
 /**
  * Load environment variables from .env file, where DB URIs etc are configured.
@@ -35,6 +39,15 @@ var app = express();
 app.set('port', process.env.PORT || 3001);
 app.use(bodyParser.json()); //// for parsing application/json
 app.use(bodyParser.urlencoded({ extended: false })); // for parsing application/x-www-form-urlencoded
+app.use(cookieParser());
+app.use(session({
+    secret: 'streamlo',
+    saveUninitialized: true,
+    resave: false
+}));
+
+require('./config/passport')(app);
+
 
 /**
  * Routes configuration.
@@ -45,6 +58,7 @@ var authRouter = require('./routes/auth');
 app.use('/tracks', tracksRouter);
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
+
 
 /**
  * Error Handler.

@@ -88,4 +88,19 @@ var userModel = new Schema({
     }]
 });
 
+userModel.methods.validPassword = function (password, cb) {
+    return this.model('User').findOne(
+        {
+            email: this.email,
+            password: password
+        },
+        function (err, row) {
+            if (row) {
+                cb(true);
+            } else {
+                cb(false);
+            }
+        });
+};
+
 module.exports = mongoose.model('User', userModel);

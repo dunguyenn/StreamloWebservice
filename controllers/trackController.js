@@ -23,11 +23,15 @@ exports.getTrackStreamByGridFSId = function(req, res) {
 };
 
 exports.getTracksByTitle = function(req, res) {
+    var perPage = 5
+    var page = Math.max(0, req.query.page);
+
     var trackTitle = req.query.q;
     var query = Track.find({ title : trackTitle });
 
     query.sort({numPlays: 'desc'})
-        .limit(5)
+        .limit(perPage)
+        .skip(perPage * page)
         .exec(function(err, results){
             if(err)
                 res.sendStatus(500);
@@ -119,6 +123,7 @@ exports.postTrack = function(req, res) {
                   }
                   console.log('Removed gridfs file after unsuccessful db update');
                 });
+                console.log(err);
                 fs.unlink(filePath);
                 res.sendStatus(500);
             } else { // In event of sucessful track save add uploaded gridfs trackId to uploaders uploaded files object
@@ -190,6 +195,7 @@ exports.deleteTrackByTrackURL = function(req, res) {
         });
 };
 
+// Add comment ot track by track URL
 exports.addCommentToTrackByTrackURL = function(req, res) {
     var com = { user: req.body.user, datePosted: req.body.date, body: req.body.body }
     var trackURL = req.params.trackURL;

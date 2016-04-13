@@ -8,10 +8,14 @@ grid.mongo = mongoose.mongo;
 
 // TODO add search people functionality
 exports.getUserByName = function(req, res) {
+    var perPage = 5
+    var page = Math.max(0, req.query.page);
     var requestedUsername = req.query.q;
+
     var query = User.find({ displayName : requestedUsername });
 
-    query.limit(10)
+    query.limit(5)
+        .skip(perPage * page)
         .exec(function(err, results){
             if(err)
                 res.sendStatus(500);

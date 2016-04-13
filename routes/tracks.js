@@ -32,12 +32,7 @@ router.get('/:city/chart', function(req, res) {
 
 // POST track to the system
 router.post('/', upload.single('track'), function(req, res) {
-    if(!req.user){
-        res.sendStatus(401);
-    } else {
-        return trackController.postTrack(req, res);
-    }
-
+    return trackController.postTrack(req, res);
 });
 
 // Add comment to track by trackURL

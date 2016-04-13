@@ -20,6 +20,11 @@ router.get('/:trackId/stream', function(req, res) {
     return trackController.getTrackStreamByGridFSId(req, res);
 });
 
+// GET all tracks with uploaderId
+router.get('/uploaderId/:uploaderId', function(req, res) {
+    return trackController.getTracksByUploaderId(req, res);
+});
+
 // GET number of mathching tracks by title
 router.get('/getNumOfTracks', function(req, res) {
     return trackController.getNumberOfTracksByTitle(req, res);

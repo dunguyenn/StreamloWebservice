@@ -97,9 +97,11 @@ exports.addProfilePictureToUser = function(req, res) {
     });
 };
 
+/*
 exports.addLikedTrackToUser = function(req, res) {
 
 };
+*/
 
 exports.getUserByURL = function(req, res) {
     var userURL = req.params.userURL;

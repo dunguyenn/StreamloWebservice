@@ -9,7 +9,6 @@ router.get('/', function(req, res) {
     return userController.getUserByName(req, res);
 });
 
-
 // GET user information by userURL
 router.get('/:userURL', function(req, res) {
     return userController.getUserByURL(req, res);

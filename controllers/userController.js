@@ -5,8 +5,6 @@ var grid = require('gridfs-stream');
 var conn = mongoose.connection;
 grid.mongo = mongoose.mongo;
 
-
-// TODO add search people functionality
 exports.getUserByName = function(req, res) {
     var perPage = 5
     var page = Math.max(0, req.query.page);
@@ -96,12 +94,6 @@ exports.addProfilePictureToUser = function(req, res) {
         });
     });
 };
-
-/*
-exports.addLikedTrackToUser = function(req, res) {
-
-};
-*/
 
 exports.getUserByURL = function(req, res) {
     var userURL = req.params.userURL;

@@ -12,7 +12,6 @@ var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are 
     'Track URL must be valid'
 ];
 
-// TODO Complete dateUploadedValidator
 var dateUploadedValidator = [ // Only dates after date.now permitted
     function (val) {
         var date = new Date();

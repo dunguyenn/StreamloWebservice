@@ -5,6 +5,9 @@ node_modules
 # API keys and secrets
 .env
 
+# npm logs
+npm-debug.log
+
 # OS generated files #
 .DS_Store
 .DS_Store?

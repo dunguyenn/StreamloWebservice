@@ -36,11 +36,13 @@ router.get('/:city/chart', function(req, res) {
 });
 
 // POST track to the system
+// TODO Add auth nessesary
 router.post('/', upload.single('track'), function(req, res) {
     return trackController.postTrack(req, res);
 });
 
 // Add comment to track by trackURL
+// TODO Add auth nessesary
 router.post('/:trackURL/addComment',function(req, res) {
     return trackController.addCommentToTrackByTrackURL(req, res);
 });

@@ -34,6 +34,4 @@ router.post('/:userURL/addProfilePicture', upload.single('profilePicture'), func
     return userController.addProfilePictureToUser(req, res);
 });
 
-
-
 module.exports = router;

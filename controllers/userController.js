@@ -34,24 +34,31 @@ exports.getNumberOfPeopleByDisplayName = function(req, res) {
         });
 };
 
-exports.createUserAccount = function(req, res) {
-    var entry = new User({
-        email: req.body.email,
-        password: req.body.password,
-        userURL: req.body.userURL,
-        displayName: req.body.displayName,
-        city: req.body.city
-    });
-
-    entry.save(function(err) {
-        if(err){
-            console.log(err);
-            res.status(500).send(err);
-        } else {
-            res.sendStatus(200);
-        }
-    });
+// TODO implement server side validation for signup form
+function validateSignupForm(payload) {
+    return true;
 }
+
+exports.createUserAccount = function(req, res) {
+    if(validateSignupForm){
+        var entry = new User({
+            email: req.body.email,
+            password: req.body.password,
+            userURL: req.body.userURL,
+            displayName: req.body.displayName,
+            city: req.body.city
+        });
+
+        entry.save(function(err) {
+            if(err){
+                console.log(err);
+                res.status(500).send(err);
+            } else {
+                res.sendStatus(200);
+            }
+        });
+    }
+};
 
 // TODO check this is working
 exports.addProfilePictureToUser = function(req, res) {

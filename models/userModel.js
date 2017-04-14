@@ -39,7 +39,7 @@ var userModel = new Schema({
     userURL: { // This will be users unique page url
         type: String,
         required: true,
-        unique: true,
+        unique: true
     }, // Must be unique
     displayName: {
         type: String,
@@ -100,7 +100,7 @@ userModel.methods.validPassword = function (password, cb) {
             } else {
                 cb(false);
             }
-        });
+    });
 };
 
 module.exports = mongoose.model('User', userModel);

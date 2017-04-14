@@ -43,16 +43,16 @@ var trackSchema = new Schema({
 	title: {
 		type: String,
 		required: true,
-	 	maxlength: 100
+        maxlength: 100
     },
 	genre: {
 		type: String,
 		required: true,
-	 	enum: genreEnu
+        enum: genreEnu
     },
 	description: {
 		type: String,
-	 	maxlength: 4000
+        maxlength: 4000
     },
 	trackURL: { // Unique URL track will reside on
 		type: String,
@@ -101,7 +101,5 @@ var trackSchema = new Schema({
         body: String
     }]
 });
-
-
 
 module.exports = mongoose.model('Track', trackSchema);

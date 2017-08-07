@@ -46,10 +46,9 @@ var app = express();
  * Express configuration.
  */
 // app.use is Binding application-level middleware to an instance of the app object
-
 app.set('port', process.env.PORT || 3001);
 app.use(cors());
-app.use(bodyParser.json()); //// for parsing application/json
+app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: false })); // for parsing application/x-www-form-urlencoded
 app.use(cookieParser());
 app.use(session({
@@ -60,6 +59,13 @@ app.use(session({
 
 require('./config/passport')(app);
 
+/**
+ * Load Passport Strategys.
+ */
+const localSignupStrategy = require('./passport/local-signup');
+const localLoginStrategy = require('./passport/local-login');
+passport.use('local-signup', localSignupStrategy);
+passport.use('local-login', localLoginStrategy);
 
 /**
  * Routes configuration.

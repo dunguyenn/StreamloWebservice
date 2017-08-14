@@ -3,11 +3,9 @@ var router = express.Router();
 var passport = require('passport');
 var authController = require('../controllers/authController.js');
 
-router.post('/signin', passport.authenticate('local'), function(req, res) {
-    // If this function gets called, authentication was successful.
-    // `req.user` contains the authenticated user.
-
-    res.json(req.user);
+// POST login to user account
+router.post('/login', function(req, res) {
+  return authController.login(req, res);
 });
 
 // POST user account to system

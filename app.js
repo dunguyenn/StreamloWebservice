@@ -9,22 +9,12 @@ var dotenv = require('dotenv');
 var cookieParser = require('cookie-parser');
 var passport = require('passport');
 var session = require('express-session');
-var flash = require('express-flash');
-var jwt = require('express-jwt');
 var cors = require('cors');
 
 /**
  * Load environment variables from .env file, where DB URIs etc are configured.
  */
 dotenv.load();
-
-/**
- * Setup json web token authentication
- */
-var authenticate = jwt({
-  secret: process.env.AUTH0_SECRET,
-  audience: process.env.AUTH0_CLIENT_ID
-});
 
 /**
  * Connect to MongoDB.
@@ -83,7 +73,7 @@ app.use('/auth', authRouter);
 app.use(errorHandler());
 
 
-app.get('/', authenticate, function(req, res){
+app.get('/', function(req, res){
     res.send('Welcome to my API!');
 });
 

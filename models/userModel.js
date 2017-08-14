@@ -11,7 +11,7 @@ var emailAddressValidator = [
     'Enter a valid email address.'
 ];
 
-//// Custom emunerations
+// Custom emunerations
 var cityEnu = {
   values: 'Belfast Derry'.split(' '),
   message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'

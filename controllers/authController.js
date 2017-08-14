@@ -16,7 +16,7 @@ function validateSignupForm(payload) {
 
   if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
     isFormValid = false;
-    errors.email = 'Please provide a correct email address.';
+    errors.email = 'Please provide a valid email address.';
   }
 
   if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {
@@ -56,7 +56,7 @@ exports.createUserAccount = function(req, res) {
   // Use passport local strategy to create user account.
   // authenticate() calls itself here, rather than being used as route middleware.
   // This gives the callback access to the req and res objects through closure.
-  return passport.authenticate('local-signup', (err, user, info) => {
+  return passport.authenticate('local-signup', (err, user) => {
     if (err) {
       if (err.name === 'MongoError' && err.code === 11000) {
         // the Mongo code is for a duplicate key error
@@ -86,3 +86,62 @@ exports.createUserAccount = function(req, res) {
     });
   })(req, res);
 };
+
+function validateLoginForm(payload) {
+  const errors = {};
+  let isFormValid = true;
+  let message = '';
+
+  if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
+    isFormValid = false;
+    errors.email = 'Please provide a valid email address.';
+  }
+
+  if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {
+    isFormValid = false;
+    errors.password = 'Password must have at least 8 characters.';
+  }
+
+  if (!isFormValid) {
+    message = 'Check the form for errors.';
+  }
+
+  return {
+    success: isFormValid,
+    message,
+    errors
+  };
+}
+
+exports.login = function(req, res) {
+  // Run request body through server side validation
+  const validationResult = validateLoginForm(req.body);
+
+  // Check if request body passed server side validation
+  if (!validationResult.success) {
+    return res.status(400).json({
+      success: false,
+      message: validationResult.message,
+      errors: validationResult.errors
+    });
+  }
+
+  // Use passport local strategy to create user account.
+  // authenticate() calls itself here, rather than being used as route middleware.
+  // This gives the callback access to the req and res objects through closure.
+  return passport.authenticate('local-login', (err, user) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.name
+      });
+    }
+
+    let token = utilsJWT.generateToken(user); // Generate JWT Token
+    return res.status(200).json({
+      success: true,
+      message: 'You have successfully logged in!',
+      token: token
+    });
+  })(req, res);
+}

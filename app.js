@@ -47,7 +47,7 @@ app.use(session({
     resave: false
 }));
 
-require('./config/passport')(app);
+//require('./config/passport')(app);
 
 /**
  * Load Passport Strategys.

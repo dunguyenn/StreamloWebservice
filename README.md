@@ -30,7 +30,7 @@ Web service utillizes a number on NPM modules including:
 2.	Run "mongod" to start the mongodb daemon 
 3.	Install nodejs / v5.0^ (and greater) (https://nodejs.org/en/)
 4.	Navigate to downloaded repository directory in CLI
-5.  Edit ".env.example" file and set mongodb connection string, then rename it to ".env"
+5.  Rename ".env.example" to ".env" and change the placeholder values to suit your machines environment.
 6.	Run “npm install”
 7.	Run "npm install -g gulp"
 8.	Run "gulp"

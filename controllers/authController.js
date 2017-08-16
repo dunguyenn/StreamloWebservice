@@ -137,10 +137,22 @@ exports.login = function(req, res) {
       });
     }
 
+    let userProfile = {
+      email: user.email,
+      userURL: user.userURL,
+      displayName: user.displayName,
+      city: user.city,
+      numTracksUploaded: user.numberOfTracksUploaded,
+      numFollowedUsers: user.numberOfFollowedUsers,
+      numFollowers: user.numberOfFollowers
+    };
+
     let token = utilsJWT.generateToken(user); // Generate JWT Token
+
     return res.status(200).json({
       success: true,
       message: 'You have successfully logged in!',
+      profile: userProfile,
       token: token
     });
   })(req, res);

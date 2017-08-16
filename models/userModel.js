@@ -1,6 +1,8 @@
 var mongoose = require('mongoose');
 var validator = require('validator');
+var bcrypt = require('bcrypt');
 var Schema = mongoose.Schema;
+const SALT_WORK_FACTOR = 10;
 
 // Custom Validators
 var emailAddressValidator = [
@@ -88,44 +90,34 @@ var userModel = new Schema({
     }]
 });
 
-userModel.methods.validPassword = function (password, cb) {
-  return this.model('User').findOne({
-      email: this.email,
-      password: password
-    },
-    function (err, row) {
-      if (row) {
-          cb(true);
-      } else {
-          cb(false);
-      }
+userModel.methods.comparePassword = function(candidatePassword, cb) {
+  bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
+    if(err) return cb(err);
+    cb(null, isMatch);
   });
 };
 
-/**
- * The pre-save hook method.
- */
- /*
+// The pre-save hook method.
 userModel.pre('save', function saveHook(next) {
   const user = this;
 
   // proceed further only if the password is modified or the user is new
   if (!user.isModified('password')) return next();
 
-
-  return bcrypt.genSalt((saltError, salt) => {
+  // Generate a salt
+  return bcrypt.genSalt(SALT_WORK_FACTOR, (saltError, salt) => {
     if (saltError) { return next(saltError); }
 
+    // hash the password along with our new salt
     return bcrypt.hash(user.password, salt, (hashError, hash) => {
       if (hashError) { return next(hashError); }
 
-      // replace a password string with hash value
+       // replace the cleartext password with the hashed one
       user.password = hash;
 
       return next();
     });
   });
 });
-*/
 
 module.exports = mongoose.model('User', userModel);

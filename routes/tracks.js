@@ -25,10 +25,12 @@ router.get('/uploaderId/:uploaderId', function(req, res) {
     return trackController.getTracksByUploaderId(req, res);
 });
 
+/*
 // GET number of mathching tracks by title
 router.get('/getNumOfTracks', function(req, res) {
     return trackController.getNumberOfTracksByTitle(req, res);
 });
+*/
 
 // GET top 10 tracks of city sorted by number of plays
 router.get('/:city/chart', function(req, res) {

@@ -22,22 +22,45 @@ exports.getTrackStreamByGridFSId = function(req, res) {
     });
 };
 
-exports.getTracksByTitle = function(req, res) {
-    var perPage = 5
-    var page = Math.max(0, req.query.page);
+exports.getTracksByTitle = (req, res) => {
+  let response = {};
+  var perPage = 5
+  var page = Math.max(0, req.query.page);
 
-    var trackTitle = req.query.q;
-    var query = Track.find({ title : trackTitle });
+  var trackTitle = req.query.q;
+  var query = Track.find({ title : trackTitle });
 
-    query.sort({numPlays: 'desc'})
-        .limit(perPage)
-        .skip(perPage * page)
-        .exec(function(err, results){
-            if(err)
-                res.sendStatus(500);
-            else
-                res.json(results);
+  query.sort({numPlays: 'desc'})
+    .limit(perPage)
+    .skip(perPage * page)
+    .exec((err, results) => {
+      if(err) {
+        res.sendStatus(500);
+      }
+      else {
+        response.tracks = results;
+        getNumberOfTracksByTitle(trackTitle, (err, results) => {
+          if(err) {
+            res.sendStatus(500);
+          } else {
+            response.numMatchingTracks = results;
+            res.json(response);
+          }
         });
+      }
+    });
+};
+
+getNumberOfTracksByTitle = (trackTitle, cb) => {
+  let query = Track.count({ title : trackTitle });
+
+  query.exec((err, results) => {
+    if(err) {
+      cb(err);
+    } else {
+      cb(null, results);
+    }
+  });
 };
 
 exports.getTracksByUploaderId = function(req, res) {
@@ -54,6 +77,7 @@ exports.getTracksByUploaderId = function(req, res) {
     })
 };
 
+/*
 exports.getNumberOfTracksByTitle = function(req, res) {
     var trackTitle = req.query.q;
     var query = Track.count({ title : trackTitle });
@@ -65,6 +89,7 @@ exports.getNumberOfTracksByTitle = function(req, res) {
                 res.json(results);
         });
 };
+*/
 
 exports.getTrackByURL = function(req, res) {
     var trackURL = req.params.trackURL;

@@ -56,7 +56,7 @@ exports.getTracksByTitle = (req, res) => {
     });
 };
 
-getNumberOfTracksByTitle = (trackTitle, cb) => {
+let getNumberOfTracksByTitle = (trackTitle, cb) => {
   let query = Track.count({
     title: trackTitle
   });
@@ -209,7 +209,7 @@ exports.postTrack = function(req, res) {
         );
 
         // Also increment number of uploaded tracks on uploder
-        var query = User.findByIdAndUpdate(
+        query = User.findByIdAndUpdate(
           uploderId, {
             $inc: {
               "numberOfTracksUploaded": 1

@@ -5,31 +5,49 @@ var grid = require('gridfs-stream');
 var conn = mongoose.connection;
 grid.mongo = mongoose.mongo;
 
-exports.getUserByDisplayName = function(req, res) {
+exports.getUsersByDisplayName = function(req, res) {
   let response = {};
   var perPage = 5
   var page = Math.max(0, req.query.page);
-  var requestedUsername = req.query.q;
+  var requestedDisplayname = req.query.q;
 
   var query = User.find({
-    displayName: requestedUsername
+    displayName: requestedDisplayname
   });
 
   query.limit(5)
     .skip(perPage * page)
-    .exec(function(err, results) {
-      if (err)
+    .exec((err, results) => {
+      if (err) {
         res.sendStatus(500);
-      else
-        res.json(results);
+      } else {
+        response.users = results;
+        getNumberOfMatchingUsersByDisplayName(requestedDisplayname, (err, results) => {
+          if (err) {
+            res.sendStatus(500);
+          } else {
+            response.numMatchingUsers = results;
+            res.json(response);
+          }
+        });
+      }
     });
 };
 
-getNumberOfMatchingUsersByDisplayName = () => {
+let getNumberOfMatchingUsersByDisplayName = (displayName, cb) => {
+  var query = User.count({
+    displayName: displayName
+  });
 
+  query.exec(function(err, results) {
+    if (err)
+      cb(err);
+    else
+      cb(null, results);
+  });
 }
 
-exports.getNumberOfPeopleByDisplayName = function(req, res) {
+exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
   var displayName = req.query.q;
   var query = User.count({
     displayName: displayName

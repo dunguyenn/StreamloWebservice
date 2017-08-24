@@ -24,7 +24,7 @@ function validateSignupForm(payload) {
     errors.password = 'Password must have at least 8 characters.';
   }
 
-  if (!payload || typeof payload.userURL !== 'string' ) {
+  if (!payload || typeof payload.userURL !== 'string') {
     isFormValid = false;
     errors.userURL = 'Please provide a userURL.';
   }

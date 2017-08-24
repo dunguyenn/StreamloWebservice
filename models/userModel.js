@@ -6,11 +6,11 @@ const SALT_WORK_FACTOR = 10;
 
 // Custom Validators
 var emailAddressValidator = [
-    function (val) {
-        return validator.isEmail(val);
-    },
-    // Customer error text...
-    'Enter a valid email address.'
+  function(val) {
+    return validator.isEmail(val);
+  },
+  // Customer error text...
+  'Enter a valid email address.'
 ];
 
 // Custom emunerations
@@ -19,80 +19,80 @@ var cityEnu = {
   message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
 };
 
-function toLower(val){
-    return val.toLowerCase();
+function toLower(val) {
+  return val.toLowerCase();
 }
 
 var ObjectId = Schema.Types.ObjectId;
 var userModel = new Schema({
-	email: {
-        type: String,
-        required: true,
-        unique: true,
-        set: toLower,
-        validate: emailAddressValidator
-    },
-    password: {
-        type: String,
-        required: true,
-        maxlength: 50,
-        minLength: 5
-    },
-    userURL: { // This will be users unique page url
-        type: String,
-        required: true,
-        unique: true
-    }, // Must be unique
-    displayName: {
-        type: String,
-        required: true
-    },
-    city: {
-        type: String,
-        required: true,
-        maxlength: 20,
-        minLength: 5,
-        enum: cityEnu
-    },
-    numberOfFollowers: {
-        type: Number,
-        default: 0
-    },
-    numberOfFollowedUsers: {
-        type: Number,
-        default: 0
-    },
-    numberOfTracksUploaded: {
-        type: Number,
-        default: 0
-    },
-    description: {
-        type: String,
-        maxlength: 100
-    },
-    profilePictureBinary: {
-        type: ObjectId
-    },
-    likedTracks: [{
-        likedTrack: {
-            type: ObjectId
-        }
-    }],
-    followedUsers: [{
-        followedUser: {
-            type: ObjectId
-        }
-    }],
-    uploadedTracks: [{
-        uploadedTrackId: {
-            type: ObjectId
-        }
-    }]
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    set: toLower,
+    validate: emailAddressValidator
+  },
+  password: {
+    type: String,
+    required: true,
+    maxlength: 50,
+    minLength: 5
+  },
+  userURL: { // This will be users unique page url
+    type: String,
+    required: true,
+    unique: true
+  }, // Must be unique
+  displayName: {
+    type: String,
+    required: true
+  },
+  city: {
+    type: String,
+    required: true,
+    maxlength: 20,
+    minLength: 5,
+    enum: cityEnu
+  },
+  numberOfFollowers: {
+    type: Number,
+    default: 0
+  },
+  numberOfFollowedUsers: {
+    type: Number,
+    default: 0
+  },
+  numberOfTracksUploaded: {
+    type: Number,
+    default: 0
+  },
+  description: {
+    type: String,
+    maxlength: 100
+  },
+  profilePictureBinary: {
+    type: ObjectId
+  },
+  likedTracks: [{
+    likedTrack: {
+      type: ObjectId
+    }
+  }],
+  followedUsers: [{
+    followedUser: {
+      type: ObjectId
+    }
+  }],
+  uploadedTracks: [{
+    uploadedTrackId: {
+      type: ObjectId
+    }
+  }]
 });
 
 userModel.methods.comparePassword = function(candidatePassword, cb) {
   bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
-    if(err) return cb(err);
+    if (err) return cb(err);
     cb(null, isMatch);
   });
 };
@@ -106,13 +106,17 @@ userModel.pre('save', function saveHook(next) {
 
   // Generate a salt
   return bcrypt.genSalt(SALT_WORK_FACTOR, (saltError, salt) => {
-    if (saltError) { return next(saltError); }
+    if (saltError) {
+      return next(saltError);
+    }
 
     // hash the password along with our new salt
     return bcrypt.hash(user.password, salt, (hashError, hash) => {
-      if (hashError) { return next(hashError); }
+      if (hashError) {
+        return next(hashError);
+      }
 
-       // replace the cleartext password with the hashed one
+      // replace the cleartext password with the hashed one
       user.password = hash;
 
       return next();

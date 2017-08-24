@@ -10,7 +10,7 @@ router.post('/login', function(req, res) {
 
 // POST user account to system
 router.post('/signup', function(req, res) {
-    return authController.createUserAccount(req, res);
+  return authController.createUserAccount(req, res);
 });
 
 module.exports = router;

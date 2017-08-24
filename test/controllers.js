@@ -10,14 +10,12 @@ chai.should();
 
 describe('controller Tests', function() {
 
-    describe('track controller', function() {
-        it('test', function() {
-        });
-    });
+  describe('track controller', function() {
+    it('test', function() {});
+  });
 
-    describe('user controller', function() {
-        it('test', function() {
-        });
-    });
+  describe('user controller', function() {
+    it('test', function() {});
+  });
 
 });

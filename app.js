@@ -38,7 +38,6 @@ var app = express();
 // app.use is Binding application-level middleware to an instance of the app object
 app.set('port', process.env.PORT || 3001);
 app.use(cors());
-app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({
   extended: false
 })); // for parsing application/x-www-form-urlencoded

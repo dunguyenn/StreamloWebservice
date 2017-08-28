@@ -138,6 +138,7 @@ exports.login = function(req, res) {
     }
 
     let userProfile = {
+      id: user._id,
       email: user.email,
       //email_verified: user.email_verified, // TODO add email verification
       userURL: user.userURL,

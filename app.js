@@ -8,8 +8,8 @@ var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
 var cookieParser = require('cookie-parser');
 var passport = require('passport');
-var session = require('express-session');
 var cors = require('cors');
+var morgan = require('morgan')
 
 /**
  * Load environment variables from .env file, where DB URIs etc are configured.
@@ -31,10 +31,10 @@ mongoose.connection.on('error', function() {
  */
 var app = express();
 
-
 /**
  * Express configuration.
  */
+
 // app.use is Binding application-level middleware to an instance of the app object
 app.set('port', process.env.PORT || 3001);
 app.use(cors());
@@ -43,13 +43,16 @@ app.use(bodyParser.urlencoded({
   extended: false
 })); // for parsing application/x-www-form-urlencoded
 app.use(cookieParser());
-app.use(session({
-  secret: 'streamlo',
-  saveUninitialized: true,
-  resave: false
-}));
 
-//require('./config/passport')(app);
+/**
+ * Error Handler.
+ */
+app.use(errorHandler());
+
+/**
+ * HTTP request logger middleware.
+ */
+app.use(morgan('dev'));
 
 /**
  * Load Passport Strategys.
@@ -63,22 +66,20 @@ passport.use('local-login', localLoginStrategy);
  * Routes configuration.
  */
 var tracksRouter = require('./routes/tracks');
+var protectedTracksRouter = require('./routes/protectedTracks');
 var usersRouter = require('./routes/users');
+var protectedUsersRouter = require('./routes/protectedUsers');
 var authRouter = require('./routes/auth');
 app.use('/tracks', tracksRouter);
+app.use('/tracks', protectedTracksRouter);
 app.use('/users', usersRouter);
+app.use('/users', protectedUsersRouter);
 app.use('/auth', authRouter);
-
-/**
- * Error Handler.
- */
-app.use(errorHandler());
-
 
 app.get('/', function(req, res) {
   res.send('Welcome to my API!');
 });
 
 app.listen(app.get('port'), function() {
-  console.log('Express server listening on port ' + app.get('port'));
+  console.log('Express server listening on port ' + process.env.PORT);
 });

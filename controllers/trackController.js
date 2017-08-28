@@ -86,20 +86,6 @@ exports.getTracksByUploaderId = function(req, res) {
     })
 };
 
-/*
-exports.getNumberOfTracksByTitle = function(req, res) {
-    var trackTitle = req.query.q;
-    var query = Track.count({ title : trackTitle });
-
-    query.exec(function(err, results){
-            if(err)
-                res.sendStatus(500);
-            else
-                res.json(results);
-        });
-};
-*/
-
 exports.getTrackByURL = function(req, res) {
   var trackURL = req.params.trackURL;
   var query = Track.findOne({

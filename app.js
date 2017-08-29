@@ -38,6 +38,7 @@ var app = express();
 // app.use is Binding application-level middleware to an instance of the app object
 app.set('port', process.env.PORT || 3001);
 app.use(cors());
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: false
 })); // for parsing application/x-www-form-urlencoded
@@ -74,10 +75,6 @@ app.use('/tracks', protectedTracksRouter);
 app.use('/users', usersRouter);
 app.use('/users', protectedUsersRouter);
 app.use('/auth', authRouter);
-
-app.get('/', function(req, res) {
-  res.send('Welcome to my API!');
-});
 
 app.listen(app.get('port'), function() {
   console.log('Express server listening on port ' + process.env.PORT);

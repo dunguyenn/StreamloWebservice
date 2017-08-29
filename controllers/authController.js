@@ -76,13 +76,9 @@ exports.createUserAccount = function(req, res) {
       });
     }
 
-    let token = utilsJWT.generateToken(user); // Generate Token // TODO maybe move jwt generation to user model as method?
-
-
     return res.status(200).json({
       success: true,
-      message: 'You have successfully signed up! Now you should be able to log in.',
-      token: token
+      message: 'You have successfully signed up! Now you should be able to log in.'
     });
   })(req, res);
 };

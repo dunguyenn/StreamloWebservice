@@ -6,6 +6,7 @@ var grid = require('gridfs-stream');
 var conn = mongoose.connection;
 grid.mongo = mongoose.mongo;
 
+// TODO support seeking requests from clientside
 exports.getTrackStreamByGridFSId = function(req, res) {
   var trackId = req.params.trackId;
   var gfs = grid(conn.db);

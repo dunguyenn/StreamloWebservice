@@ -120,8 +120,6 @@ exports.getChartOfCity = function(req, res) {
 };
 
 exports.postTrack = function(req, res) {
-  console.log(req.decoded);
-
   var uploadedFileId;
 
   var fileName = req.body.title;

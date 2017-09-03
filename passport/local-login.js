@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+var utilsJWT = require('../utils/jwt');
 const User = require('mongoose').model('User');
 const PassportLocalStrategy = require('passport-local').Strategy;
 
@@ -43,7 +43,8 @@ module.exports = new PassportLocalStrategy({
 
         return done(error);
       }
-      return done(null, user);
+      let token = utilsJWT.generateToken(user); // Generate JWT Token
+      return done(null, user, token);
     });
   });
 });

@@ -1,6 +1,5 @@
 var validator = require('validator');
 var passport = require('passport');
-var utilsJWT = require('../utils/jwt');
 
 /**
  * Validate the sign up form
@@ -118,10 +117,10 @@ exports.login = function(req, res) {
     });
   }
 
-  // Use passport local strategy to create user account.
+  // Use passport local strategy to login to user.
   // authenticate() calls itself here, rather than being used as route middleware.
   // This gives the callback access to the req and res objects through closure.
-  return passport.authenticate('local-login', (err, user) => {
+  return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -141,13 +140,11 @@ exports.login = function(req, res) {
       numFollowers: user.numberOfFollowers
     };
 
-    let token = utilsJWT.generateToken(user); // Generate JWT Token
-
     return res.status(200).json({
       success: true,
       message: 'You have successfully logged in!',
       profile: userProfile,
-      token: token
+      token: JWTToken
     });
   })(req, res);
 }

@@ -42,7 +42,7 @@ var userModel = new Schema({
     type: String,
     required: true,
     unique: true
-  }, // Must be unique
+  },
   displayName: {
     type: String,
     required: true

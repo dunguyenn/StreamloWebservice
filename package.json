@@ -6,27 +6,26 @@
     "url": "https://github.com/richard534/StreamloWebservice"
   },
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "gulp"
+    "start": "npm run intTest -s && npm run build -s",
+    "build": "concurrently 'nodemon -C app.js' 'npm run unitTestWatch'",
+    "intTest": "echo 'Starting Integration Tests\n' && mocha -R spec test/integration && echo 'Finished Integration Tests\n'",
+    "unitTestWatch": "mocha -c -R spec test/unit --watch",
+    "unitTest": "mocha -c -R spec test/unit",
+    "ci": "npm run intTest -s && npm run unitTest -s"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^1.0.2",
     "body-parser": "^1.15.0",
-    "chai": "^3.5.0",
-    "cookie-parser": "^1.4.1",
     "cors": "^2.8.1",
     "dotenv": "^2.0.0",
     "errorhandler": "^1.4.3",
     "eslint": "^2.9.0",
     "express": "^4.13.3",
     "gridfs-stream": "^1.1.1",
-    "gulp": "^3.9.0",
-    "gulp-mocha": "^2.2.0",
-    "gulp-nodemon": "^2.0.4",
-    "gulp-util": "^3.0.7",
     "jsonwebtoken": "^7.4.1",
     "mocha": "^2.4.5",
     "mongodb": "^2.1.16",
@@ -35,7 +34,13 @@
     "multer": "^1.1.0",
     "passport": "^0.3.0",
     "passport-local": "^1.0.0",
-    "sinon": "^1.17.3",
     "validator": "^5.7.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "concurrently": "^3.5.0",
+    "mocha": "^2.5.3",
+    "rewire": "^2.5.2",
+    "supertest": "^3.0.0"
   }
 }

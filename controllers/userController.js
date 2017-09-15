@@ -116,12 +116,15 @@ exports.getUserByURL = function(req, res) {
   });
 
   query.exec(function(err, results) {
-    if (err)
+    if (err) {
       res.sendStatus(500);
-    else
+    } else if(!results) {
+      res.sendStatus(204);
+    } else {
       res.json(results);
+    }
   });
-};
+}
 
 exports.getUserById = function(req, res) {
   var userId = req.params.userId;
@@ -130,9 +133,12 @@ exports.getUserById = function(req, res) {
   });
 
   query.exec(function(err, results) {
-    if (err)
+    if (err) {
       res.sendStatus(500);
-    else
+    } else if(!results) {
+      res.sendStatus(204);
+    } else {
       res.json(results);
+    }
   });
 };

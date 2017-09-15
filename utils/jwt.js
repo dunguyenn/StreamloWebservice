@@ -1,7 +1,7 @@
 var jwt = require('jsonwebtoken');
 
 module.exports = {
-  //Generate Token using secret from process.env.JWT_SECRET
+  // Generate Token using secret from process.env.JWT_SECRET
   generateToken: function(user) {
     var u = {
       userId: user._id
@@ -12,10 +12,10 @@ module.exports = {
       expiresIn: 60 * 60 * 24 // expires in 24 hours
     });
   },
-
+  
+  // middleware that checks if JWT token exists and verifies it if it does exist.
+  // check header or url parameters or post parameters for token
   verifyToken: function(req, res, next) {
-    // middleware that checks if JWT token exists and verifies it if it does exist.
-    // check header or url parameters or post parameters for token
     var token = req.body.token || req.query.token || req.headers['x-access-token'];
 
     if (token) {

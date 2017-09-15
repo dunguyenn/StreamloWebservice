@@ -6,7 +6,6 @@ var errorHandler = require('errorhandler');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
-var cookieParser = require('cookie-parser');
 var passport = require('passport');
 var cors = require('cors');
 var morgan = require('morgan')
@@ -34,24 +33,15 @@ var app = express();
 /**
  * Express configuration.
  */
-
-// app.use is Binding application-level middleware to an instance of the app object
+ // app.use is Binding application-level middleware to an instance of the app object
 app.set('port', process.env.PORT || 3001);
-app.use(cors());
+app.use(cors()); 
+app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({
   extended: false
 })); // for parsing application/x-www-form-urlencoded
-app.use(cookieParser());
-
-/**
- * Error Handler.
- */
-app.use(errorHandler());
-
-/**
- * HTTP request logger middleware.
- */
-app.use(morgan('dev'));
+app.use(errorHandler()); // Error Handler
+//app.use(morgan('dev')); // HTTP request logger middleware
 
 /**
  * Load Passport Strategys.
@@ -75,10 +65,6 @@ app.use('/users', usersRouter);
 app.use('/users', protectedUsersRouter);
 app.use('/auth', authRouter);
 
-app.get('/', function(req, res) {
-  res.send('Welcome to my API!');
-});
+var server = app.listen(app.get('port'));
 
-app.listen(app.get('port'), function() {
-  console.log('Express server listening on port ' + process.env.PORT);
-});
+module.exports = server;

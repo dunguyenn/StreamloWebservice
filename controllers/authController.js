@@ -1,14 +1,9 @@
 var validator = require('validator');
 var passport = require('passport');
-var utilsJWT = require('../utils/jwt');
 
 /**
  * Validate the sign up form
- *
- * @param {object} payload - the HTTP body message
- * @returns {object} The result of validation. Object contains a boolean validation result,
- *                   errors tips, and a global message for the whole form.
- */
+*/
 function validateSignupForm(payload) {
   const errors = {};
   let isFormValid = true;
@@ -76,13 +71,9 @@ exports.createUserAccount = function(req, res) {
       });
     }
 
-    let token = utilsJWT.generateToken(user); // Generate Token // TODO maybe move jwt generation to user model as method?
-
-
     return res.status(200).json({
       success: true,
-      message: 'You have successfully signed up! Now you should be able to log in.',
-      token: token
+      message: 'You have successfully signed up! Now you should be able to log in.'
     });
   })(req, res);
 };
@@ -126,10 +117,10 @@ exports.login = function(req, res) {
     });
   }
 
-  // Use passport local strategy to create user account.
+  // Use passport local strategy to login to user.
   // authenticate() calls itself here, rather than being used as route middleware.
   // This gives the callback access to the req and res objects through closure.
-  return passport.authenticate('local-login', (err, user) => {
+  return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -149,13 +140,11 @@ exports.login = function(req, res) {
       numFollowers: user.numberOfFollowers
     };
 
-    let token = utilsJWT.generateToken(user); // Generate JWT Token
-
     return res.status(200).json({
       success: true,
       message: 'You have successfully logged in!',
       profile: userProfile,
-      token: token
+      token: JWTToken
     });
   })(req, res);
 }

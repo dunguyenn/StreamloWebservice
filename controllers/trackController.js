@@ -140,7 +140,6 @@ exports.postTrack = function(req, res) {
 
   writestream.on('close', function(file) {
     uploadedFileId = file._id;
-    console.log(file.filename + 'Written To DB');
 
     var entry = new Track({
       title: req.body.title,
@@ -161,7 +160,6 @@ exports.postTrack = function(req, res) {
           if (gfserr) {
             console.log("error removing gridfs file");
           }
-          console.log('Removed gridfs file after unsuccessful db update');
         });
         console.log(err);
         fs.unlink(filePath);

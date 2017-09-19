@@ -6,24 +6,51 @@ let assert = chai.assert;
 
 describe('Patient Portal Webservice', function() {
     describe('POST /auth/login', function() {
-        var server;
+        var app;
         beforeEach(function() {
-            server = require('../../app');
+            app = require('../../app');
         });
         afterEach(function() {
-            server.close();
+            app.close();
         });
         it('returns status code 200 with valid data', function(done) {
-            request(server)
+            request(app)
                 .post('/auth/login')
-                .send('email=test@hotmail.co.uk')
+                .send('email=test@hotmail.com')
                 .send('password=password')
                 .expect(200)
                 .expect(function(res) {
-                    res.body.message.should.equal("You have successfully logged in!");
                     res.body.success.should.equal(true);
-                    assert.isObject(res.body.profile);
+                    res.body.message.should.equal("You have successfully logged in!");
                     assert.isString(res.body.token);
+                    assert.isObject(res.body.profile);
+                })
+                .end(done);
+        });
+
+        it('returns status code 400 with invalid email', function(done) {
+            request(app)
+                .post('/auth/login')
+                .send('email=test')
+                .send('password=password')
+                .expect(400)
+                .expect(function(res) {
+                    res.body.success.should.equal(false);
+                    res.body.message.should.equal("Check the form for errors.");
+                    res.body.errors.email.should.equal("Please provide a valid email address.");
+                })
+                .end(done);
+        });
+
+        it('returns status code 400 with invalid password', function(done) {
+            request(app)
+                .post('/auth/login')
+                .send('email=email=test@hotmail.com')
+                .send('password=incorrectPassword')
+                .expect(400)
+                .expect(function(res) {
+                    res.body.success.should.equal(false);
+                    res.body.message.should.equal("IncorrectCredentialsError");
                 })
                 .end(done);
         });

@@ -1,5 +1,4 @@
 let chai = require('chai');
-var expect = chai.expect;
 var assert = chai.assert;
 
 const rewire = require('rewire');

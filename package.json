@@ -10,7 +10,7 @@
   "scripts": {
     "start": "npm run intTest -s && npm run build -s",
     "build": "concurrently 'nodemon app.js' 'npm run unitTestWatch'",
-    "intTest": "echo 'Starting Integration Tests\n' && mocha -R spec test/integration && echo 'Finished Integration Tests\n'",
+    "intTest": "echo 'Starting Integration Tests\n' && mocha -c -R spec test/integration && echo 'Finished Integration Tests\n'",
     "unitTestWatch": "mocha -c -R spec test/unit --watch",
     "unitTest": "mocha -c -R spec test/unit",
     "ci": "npm run intTest -s && npm run unitTest -s"

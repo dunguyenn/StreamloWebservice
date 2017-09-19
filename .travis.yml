@@ -19,7 +19,7 @@ install:
 
 before_script:
     # Run db script file to create and populate database
-    - mongorestore -d StreamloWebServiceDB ./test/streamloWebserviceTestDB
+    - mongorestore -v -d StreamloWebServiceDB ./test/streamloWebserviceTestDB
   
 script:
     # Backend build

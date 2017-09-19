@@ -20,6 +20,7 @@ describe('Patient Portal Webservice', function() {
                 .send('password=password')
                 .expect(200)
                 .expect(function(res) {
+                    console.log(res);
                     res.body.success.should.equal(true);
                     res.body.message.should.equal("You have successfully logged in!");
                     assert.isString(res.body.token);

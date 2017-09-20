@@ -110,6 +110,8 @@ exports.login = function(req, res) {
 
   // Check if request body passed server side validation
   if (!validationResult.success) {
+    console.log("here");
+    console.log(validationResult);
     return res.status(400).json({
       success: false,
       message: validationResult.message,
@@ -122,6 +124,8 @@ exports.login = function(req, res) {
   // This gives the callback access to the req and res objects through closure.
   return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
+      console.log("orhere");
+      console.log(validationResult);
       return res.status(400).json({
         success: false,
         message: err.name

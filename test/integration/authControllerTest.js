@@ -20,13 +20,20 @@ describe('Patient Portal Webservice', function() {
                 .send('password=password')
                 .expect(200)
                 .expect(function(res) {
-                    console.log(res);
                     res.body.success.should.equal(true);
                     res.body.message.should.equal("You have successfully logged in!");
                     assert.isString(res.body.token);
                     assert.isObject(res.body.profile);
                 })
-                .end(done);
+                .end(function(err, res) {
+                    if (err) {
+                        console.log(res); 
+                        console.log('#####################################')
+                        console.log(err); 
+                        return done(err);
+                    }
+                    done();
+                });
         });
 
         it('returns status code 400 with invalid email', function(done) {

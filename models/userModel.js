@@ -24,7 +24,7 @@ function toLower(val) {
 }
 
 var ObjectId = Schema.Types.ObjectId;
-var user = new Schema({
+var userModel = new Schema({
   email: {
     type: String,
     required: true,
@@ -90,7 +90,7 @@ var user = new Schema({
   }]
 });
 
-user.methods.comparePassword = function(candidatePassword, cb) {
+userModel.methods.comparePassword = function(candidatePassword, cb) {
   bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
     if (err) return cb(err);
     cb(null, isMatch);
@@ -98,7 +98,7 @@ user.methods.comparePassword = function(candidatePassword, cb) {
 };
 
 // The pre-save hook method.
-user.pre('save', function saveHook(next) {
+userModel.pre('save', function saveHook(next) {
   const user = this;
 
   // proceed further only if the password is modified or the user is new
@@ -124,4 +124,4 @@ user.pre('save', function saveHook(next) {
   });
 });
 
-module.exports = mongoose.model('User', user);
+module.exports = mongoose.model('user', userModel);

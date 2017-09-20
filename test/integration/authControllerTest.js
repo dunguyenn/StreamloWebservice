@@ -27,9 +27,6 @@ describe('Patient Portal Webservice', function() {
                 })
                 .end(function(err, res) {
                     if (err) {
-                        console.log(res); 
-                        console.log('#####################################')
-                        console.log(err); 
                         return done(err);
                     }
                     done();

@@ -117,16 +117,11 @@ exports.login = function(req, res) {
     });
   }
   
-  console.log("reqhere");
-  console.log(req);
-
   // Use passport local strategy to login to user.
   // authenticate() calls itself here, rather than being used as route middleware.
   // This gives the callback access to the req and res objects through closure.
   return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
-      console.log("orhere");
-      console.log(err);
       return res.status(400).json({
         success: false,
         message: err.name

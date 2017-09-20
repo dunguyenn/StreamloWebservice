@@ -15,11 +15,13 @@ module.exports = new PassportLocalStrategy({
     email: email.trim(),
     password: password.trim()
   };
-
+  console.log(userData.email);
   // find a user by email address
   return User.findOne({
     email: userData.email
   }, (err, user) => {
+    console.log(user);
+    console.log(err);
     if (err) {
       return done(err);
     }

@@ -24,7 +24,6 @@ before_script:
     # Run db script file to create and populate database
     - mongorestore -d StreamloWebServiceDB ./test/streamloWebserviceTestDB
     - sleep 15
-    - mongo mydb_test --eval 'db.addUser("travis", "test");'
   
 script:
     # Backend build

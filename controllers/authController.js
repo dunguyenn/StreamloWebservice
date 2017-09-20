@@ -125,7 +125,7 @@ exports.login = function(req, res) {
   return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
       console.log("orhere");
-      console.log(validationResult);
+      console.log(err);
       return res.status(400).json({
         success: false,
         message: err.name

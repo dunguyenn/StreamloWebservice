@@ -15,7 +15,7 @@ module.exports = new PassportLocalStrategy({
     email: email.trim(),
     password: password.trim()
   };
-  User.count({email: 'test@hotmail.com'}, (err, count) => {
+  User.find({}, (err, count) => {
     console.log(count);
   });
   //console.log(userData.email);

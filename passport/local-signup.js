@@ -1,5 +1,5 @@
 var userSchema = require('../models/userModel.js');
-const User = require('mongoose').model('User', userSchema);
+const User = require('mongoose').model('user', userSchema);
 const PassportLocalStrategy = require('passport-local').Strategy;
 
 /**

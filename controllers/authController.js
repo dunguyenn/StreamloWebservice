@@ -110,14 +110,15 @@ exports.login = function(req, res) {
 
   // Check if request body passed server side validation
   if (!validationResult.success) {
-    console.log("here");
-    console.log(validationResult);
     return res.status(400).json({
       success: false,
       message: validationResult.message,
       errors: validationResult.errors
     });
   }
+  
+  console.log("reqhere");
+  console.log(req);
 
   // Use passport local strategy to login to user.
   // authenticate() calls itself here, rather than being used as route middleware.

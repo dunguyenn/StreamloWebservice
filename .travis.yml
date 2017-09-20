@@ -24,6 +24,11 @@ before_script:
     # Run db script file to create and populate database
     - mongorestore -d StreamloWebServiceDB ./test/streamloWebserviceTestDB
     - sleep 15
+    - mongo
+    - use StreamloWebServiceDB
+    - show collections
+    - db.users.find()
+    - exit
   
 script:
     # Backend build

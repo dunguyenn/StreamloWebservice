@@ -50,7 +50,7 @@ describe('Patient Portal Webservice', function() {
         it('returns status code 400 with invalid password', function(done) {
             request(app)
                 .post('/auth/login')
-                .send('email=email=test@hotmail.com')
+                .send('email=test@hotmail.com')
                 .send('password=incorrectPassword')
                 .expect(400)
                 .expect(function(res) {

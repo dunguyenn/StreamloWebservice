@@ -1,6 +1,7 @@
 var Track = require('../models/trackModel.js');
 var User = require('../models/userModel.js');
 var mongoose = require('mongoose');
+var _ = require('lodash');
 var fs = require('fs');
 var grid = require('gridfs-stream');
 var conn = mongoose.connection;
@@ -43,6 +44,8 @@ exports.getTracksByTitle = (req, res) => {
     .exec((err, results) => {
       if (err) {
         res.sendStatus(500);
+      } else if (_.isEmpty(results)) {
+        res.sendStatus(204)
       } else {
         response.tracks = results;
         getNumberOfTracksByTitle(trackTitle, (err, results) => {
@@ -96,8 +99,11 @@ exports.getTrackByURL = function(req, res) {
   query.exec(function(err, results) {
     if (err)
       res.sendStatus(500);
-    else
+    else if (_.isEmpty(results)) {
+      res.sendStatus(204)
+    } else {
       res.json(results);
+    }
   });
 };
 

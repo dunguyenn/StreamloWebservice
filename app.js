@@ -11,9 +11,11 @@ var cors = require('cors');
 var morgan = require('morgan')
 
 /**
- * Load environment variables from .env file, where DB URIs etc are configured.
+ * Load environment variables from .env file.
+ * if there is a variable in the .env file which collides with one that already 
+ * exists in your environment, then that variable will be skipped
  */
-dotenv.load();
+dotenv.config();
 
 /**
  * Connect to MongoDB.

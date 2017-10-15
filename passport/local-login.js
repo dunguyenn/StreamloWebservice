@@ -1,5 +1,5 @@
 var utilsJWT = require('../utils/jwt');
-const User = require('mongoose').model('User');
+const User = require('mongoose').model('user');
 const PassportLocalStrategy = require('passport-local').Strategy;
 
 /**

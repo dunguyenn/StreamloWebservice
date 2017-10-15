@@ -1,6 +1,7 @@
 var Track = require('../models/trackModel.js');
 var User = require('../models/userModel.js');
 var mongoose = require('mongoose');
+var _ = require('lodash');
 var fs = require('fs');
 var grid = require('gridfs-stream');
 var conn = mongoose.connection;
@@ -43,6 +44,8 @@ exports.getTracksByTitle = (req, res) => {
     .exec((err, results) => {
       if (err) {
         res.sendStatus(500);
+      } else if (_.isEmpty(results)) {
+        res.sendStatus(204)
       } else {
         response.tracks = results;
         getNumberOfTracksByTitle(trackTitle, (err, results) => {
@@ -96,8 +99,11 @@ exports.getTrackByURL = function(req, res) {
   query.exec(function(err, results) {
     if (err)
       res.sendStatus(500);
-    else
+    else if (_.isEmpty(results)) {
+      res.sendStatus(204)
+    } else {
       res.json(results);
+    }
   });
 };
 
@@ -140,7 +146,6 @@ exports.postTrack = function(req, res) {
 
   writestream.on('close', function(file) {
     uploadedFileId = file._id;
-    console.log(file.filename + 'Written To DB');
 
     var entry = new Track({
       title: req.body.title,
@@ -161,7 +166,6 @@ exports.postTrack = function(req, res) {
           if (gfserr) {
             console.log("error removing gridfs file");
           }
-          console.log('Removed gridfs file after unsuccessful db update');
         });
         console.log(err);
         fs.unlink(filePath);
@@ -279,12 +283,11 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
       upsert: false,
       new: false
     },
-    function(err, model) {
+    function(err) {
       if (err) {
-        console.log(err);
-        res.sendStatus(500);
+        res.sendStatus(400);
+      } else {
+        res.sendStatus(200);
       }
-    }
-  );
-  res.sendStatus(200);
+    });
 };

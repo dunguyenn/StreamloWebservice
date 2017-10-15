@@ -9,8 +9,8 @@
   "main": "app.js",
   "scripts": {
     "start": "npm run intTest -s && npm run build -s",
-    "build": "concurrently 'nodemon -C app.js' 'npm run unitTestWatch'",
-    "intTest": "echo 'Starting Integration Tests\n' && mocha -R spec test/integration && echo 'Finished Integration Tests\n'",
+    "build": "concurrently 'nodemon app.js' 'npm run unitTestWatch'",
+    "intTest": "echo 'Starting Integration Tests\n' && mocha -c -R spec test/integration && echo 'Finished Integration Tests\n'",
     "unitTestWatch": "mocha -c -R spec test/unit --watch",
     "unitTest": "mocha -c -R spec test/unit",
     "ci": "npm run intTest -s && npm run unitTest -s"
@@ -21,13 +21,12 @@
     "bcrypt": "^1.0.2",
     "body-parser": "^1.15.0",
     "cors": "^2.8.1",
-    "dotenv": "^2.0.0",
     "errorhandler": "^1.4.3",
     "eslint": "^2.9.0",
     "express": "^4.13.3",
     "gridfs-stream": "^1.1.1",
     "jsonwebtoken": "^7.4.1",
-    "mocha": "^2.4.5",
+    "lodash": "^4.9.0",
     "mongodb": "^2.1.16",
     "mongoose": "4.1.6",
     "morgan": "^1.8.2",
@@ -39,7 +38,9 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "concurrently": "^3.5.0",
+    "dotenv": "^4.0.0",
     "mocha": "^2.5.3",
+    "nodemon": "^1.12.1",
     "rewire": "^2.5.2",
     "supertest": "^3.0.0"
   }

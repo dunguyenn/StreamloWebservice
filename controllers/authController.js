@@ -116,7 +116,7 @@ exports.login = function(req, res) {
       errors: validationResult.errors
     });
   }
-
+  
   // Use passport local strategy to login to user.
   // authenticate() calls itself here, rather than being used as route middleware.
   // This gives the callback access to the req and res objects through closure.

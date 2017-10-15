@@ -4,7 +4,7 @@ const chai = require('chai');
 let should = chai.should();
 let assert = chai.assert;
 
-describe('Authentication Service', function() {
+describe('Public Authentication Service', function() {
   describe('POST /auth/login', function() {
     var app;
     beforeEach(function() {

@@ -283,12 +283,11 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
       upsert: false,
       new: false
     },
-    function(err, model) {
+    function(err) {
       if (err) {
-        console.log(err);
-        res.sendStatus(500);
+        res.sendStatus(400);
+      } else {
+        res.sendStatus(200);
       }
-    }
-  );
-  res.sendStatus(200);
+    });
 };

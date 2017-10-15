@@ -19,17 +19,14 @@ protectedTrackRoutes.post('/:trackURL/addComment', function(req, res) {
 });
 
 // Add desciption to track by trackURL
-// TODO check if user has permission
 protectedTrackRoutes.post('/:trackURL/addDescription', function(req, res) {
   //return trackController.addCommentToTrackByTrackURL(req, res);
 });
 
-// TODO check if user has permission
 protectedTrackRoutes.patch('/:trackURL', function(req, res) {
   return trackController.updateTrackTitleByTrackURL(req, res);
 });
 
-// TODO check if user has permission
 protectedTrackRoutes.delete('/:trackURL', function(req, res) {
   return trackController.deleteTrackByTrackURL(req, res);
 });

@@ -4,7 +4,49 @@ const chai = require('chai');
 let should = chai.should();
 let assert = chai.assert;
 
-describe('Track Service', function() {
+describe('Public Track Service', function() {
+  var app;
+
+  beforeEach(function() {
+    app = require('../../app');
+  });
+  afterEach(function() {
+    app.close();
+  });
+  
+  describe('GET /tracks', function() {
+    it('returns status code 200 with valid data', function(done) {
+      request(app)
+        .get('/tracks?q=november&page=0')
+        .expect(200, done)
+    });
+    it('returns status code 204 with non-existent track name', function(done) {
+      request(app)
+        .get('/tracks?q=nonExistentTrack&page=0')
+        .expect(204, done)
+    });
+    it('returns status code 200 with valid data and no page query string', function(done) {
+      request(app)
+        .get('/tracks?q=november')
+        .expect(200, done)
+    });
+  });
+  
+  describe('GET /tracks/:trackURL', function() {
+    it('returns status code 200 with valid data', function(done) {
+      request(app)
+        .get('/tracks/november')
+        .expect(200, done)
+    });
+    it('returns status code 204 with non-existent track name', function(done) {
+      request(app)
+        .get('/tracks/nonExistentTrack')
+        .expect(204, done)
+    });
+  });
+});
+
+describe('Protected Track Service', function() {
   var app;
   var token;
 
@@ -29,39 +71,24 @@ describe('Track Service', function() {
     app.close();
   });
   
-  describe('GET /tracks', function() {
+  describe('POST /tracks/:trackURL/addComment', function() {
     it('returns status code 200 with valid data', function(done) {
       request(app)
-        .get('/tracks?q=november&page=0')
+        .post('/tracks/november/addComment')
         .set('x-access-token', token)
+        .send('user=59c1764e79ec4c846007735f')
+        .send('date=' + Date.now())
+        .send('body=testComment')
         .expect(200, done)
     });
-    it('returns status code 204 with non-existent track name', function(done) {
+    it('returns status code 400 with invalid userId', function(done) {
       request(app)
-        .get('/tracks?q=nonExistentTrack&page=0')
+        .post('/tracks/november/addComment')
         .set('x-access-token', token)
-        .expect(204, done)
-    });
-    it('returns status code 200 with valid data and no page query string', function(done) {
-      request(app)
-        .get('/tracks?q=november')
-        .set('x-access-token', token)
-        .expect(200, done)
-    });
-  });
-  
-  describe('GET /tracks/:trackURL', function() {
-    it('returns status code 200 with valid data', function(done) {
-      request(app)
-        .get('/tracks/november')
-        .set('x-access-token', token)
-        .expect(200, done)
-    });
-    it('returns status code 204 with non-existent track name', function(done) {
-      request(app)
-        .get('/tracks/nonExistentTrack')
-        .set('x-access-token', token)
-        .expect(204, done)
+        .send('user=invalid')
+        .send('date=' + Date.now())
+        .send('body=testComment')
+        .expect(400, done)
     });
   });
 });

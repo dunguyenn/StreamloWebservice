@@ -56,11 +56,11 @@ passport.use('local-login', localLoginStrategy);
 /**
  * Routes configuration.
  */
-var tracksRouter = require('./routes/tracks');
+var tracksRouter = require('./routes/publicTracks');
 var protectedTracksRouter = require('./routes/protectedTracks');
-var usersRouter = require('./routes/users');
+var usersRouter = require('./routes/publicUsers');
 var protectedUsersRouter = require('./routes/protectedUsers');
-var authRouter = require('./routes/auth');
+var authRouter = require('./routes/publicAuth');
 app.use('/tracks', tracksRouter);
 app.use('/tracks', protectedTracksRouter);
 app.use('/users', usersRouter);

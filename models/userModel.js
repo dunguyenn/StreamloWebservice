@@ -36,7 +36,7 @@ var userModel = new Schema({
     type: String,
     required: true,
     maxlength: 50,
-    minLength: 5
+    minLength: 8
   },
   userURL: { // This will be users unique page url
     type: String,

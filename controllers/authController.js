@@ -8,18 +8,24 @@ function validateSignupForm(payload) {
   const errors = {};
   let isFormValid = true;
   let message = '';
-
-  if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
+  
+  if (!payload.email || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
     isFormValid = false;
     errors.email = 'Please provide a valid email address.';
   }
-
-  if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {
+  
+  if (!payload.password || typeof payload.password !== 'string') {
+    errors.password = 'Please provide a valid password';
     isFormValid = false;
+  } else if (payload.password.trim().length < 8) {
     errors.password = 'Password must have at least 8 characters.';
+    isFormValid = false;
+  } else if (payload.password.trim().length > 50) {
+    errors.password = 'Password can have a maximum of 50 characters.';
+    isFormValid = false;
   }
 
-  if (!payload || typeof payload.userURL !== 'string') {
+  if (!payload.userURL || typeof payload.userURL !== 'string') {
     isFormValid = false;
     errors.userURL = 'Please provide a userURL.';
   }
@@ -53,15 +59,22 @@ exports.createUserAccount = function(req, res) {
   // This gives the callback access to the req and res objects through closure.
   return passport.authenticate('local-signup', (err, user) => {
     if (err) {
+      // the Mongo code is for a duplicate key error
+      // the 409 HTTP status code is for conflict error
       if (err.name === 'MongoError' && err.code === 11000) {
-        // the Mongo code is for a duplicate key error
-        // the 409 HTTP status code is for conflict error
+        let patt = new RegExp(/email/);
+        let isDuplicateEmail = patt.test(err.message);
+        let errors;
+        if(isDuplicateEmail) {
+          errors = { email: 'This email is already taken.' }
+        } else {
+          errors = { userURL: 'This userURL is already taken.' }
+        }
+
         return res.status(409).json({
           success: false,
           message: 'Check the form for errors.',
-          errors: {
-            email: 'This email or userURL is already taken.' // TODO more specific error message for duplicate email/userURL
-          }
+          errors
         });
       }
 

@@ -1,13 +1,10 @@
 var validator = require('validator');
 var passport = require('passport');
 
-/**
- * Validate the sign up form
-*/
+// Initial validation check before querying database
 function validateSignupForm(payload) {
   const errors = {};
   let isFormValid = true;
-  let message = '';
   
   if (!payload.email || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
     isFormValid = false;
@@ -30,13 +27,8 @@ function validateSignupForm(payload) {
     errors.userURL = 'Please provide a userURL.';
   }
 
-  if (!isFormValid) {
-    message = 'Check the form for errors.';
-  }
-
   return {
     success: isFormValid,
-    message,
     errors
   };
 }
@@ -78,9 +70,9 @@ exports.createUserAccount = function(req, res) {
         });
       }
 
-      return res.status(400).json({
+      return res.status(500).json({
         success: false,
-        message: 'Could not process the form.'
+        message: 'Internal Server Error'
       });
     }
 
@@ -91,28 +83,23 @@ exports.createUserAccount = function(req, res) {
   })(req, res);
 };
 
+// Initial validation check before querying database
 function validateLoginForm(payload) {
   const errors = {};
   let isFormValid = true;
-  let message = '';
 
-  if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
+  if (typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
     isFormValid = false;
     errors.email = 'Please provide a valid email address.';
   }
 
-  if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {
+  if (typeof payload.password !== 'string' || payload.password.trim().length < 8) {
     isFormValid = false;
     errors.password = 'Password must have at least 8 characters.';
   }
 
-  if (!isFormValid) {
-    message = 'Check the form for errors.';
-  }
-
   return {
     success: isFormValid,
-    message,
     errors
   };
 }
@@ -135,10 +122,20 @@ exports.login = function(req, res) {
   // This gives the callback access to the req and res objects through closure.
   return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
-      return res.status(400).json({
-        success: false,
-        message: err.name
-      });
+      switch(err.type) {
+        case "No Matching User Error":
+          return res.status(400).json({
+            success: false,
+            errors: { email: err.message }
+          });
+        case "Incorrect Candidate Password Error":
+          return res.status(400).json({
+            success: false,
+            errors: { email: err.message }
+          });
+        default:
+          return res.status(500)
+      }
     }
 
     let userProfile = {

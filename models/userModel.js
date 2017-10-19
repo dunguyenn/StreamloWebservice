@@ -41,11 +41,13 @@ var userModel = new Schema({
   userURL: { // This will be users unique page url
     type: String,
     required: true,
+    maxlength: 20,
     unique: true
   },
   displayName: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 20
   },
   city: {
     type: String,

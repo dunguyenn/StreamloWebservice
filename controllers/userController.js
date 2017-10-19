@@ -61,7 +61,7 @@ exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
   });
 };
 
-// TODO check this is working
+// TODO get this is working
 exports.addProfilePictureToUser = function(req, res) {
   var uploadedFileId;
 

@@ -21,25 +21,21 @@ module.exports = new PassportLocalStrategy({
     email: userData.email
   }, (err, user) => {
     if (err) {
-      let error = { type: "Internal Database Error" }
-      return done(error);
+      return done({ httpStatusCode: 500, message: "Internal Database Error" });
     }
 
     if (!user) {
-      let error = { type: "No Matching User Error", message: "No account associated with that email or invalid password" };
-      return done(error);
+      return done({ httpStatusCode: 400, message: "No account associated with that email or invalid password" });
     }
 
     // check if a hashed user's password is equal to a value saved in the database
     user.comparePassword(userData.password, (passwordErr, isMatch) => {
       if (err) {
-        let error = { type: "Internal Database Error" }
-        return done(error);
+        return done({ httpStatusCode: 500, message: "Internal Database Error" });
       }
 
       if (!isMatch) {
-        let error = { type: "Incorrect Candidate Password Error", message: "No account associated with that email or invalid password" };
-        return done(error);
+        return done({ httpStatusCode: 400, message: "No account associated with that email or invalid password" });
       }
       
       let token = utilsJWT.generateToken(user); // Generate JWT Token

@@ -22,7 +22,6 @@ describe('Public Authentication Service', function() {
         .send('password=password')
         .expect(200)
         .expect(function(res) {
-          res.body.success.should.equal(true);
           res.body.message.should.equal("You have successfully logged in!");
           assert.isString(res.body.token);
           assert.isObject(res.body.profile);
@@ -37,8 +36,7 @@ describe('Public Authentication Service', function() {
         .send('password=password')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.email.should.equal("Please provide a valid email address.");
+          res.body.message.should.equal("Please provide a valid email address.");
         })
         .end(done)
     });
@@ -50,8 +48,7 @@ describe('Public Authentication Service', function() {
         .send('password=password')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.email.should.equal("No account associated with that email or invalid password");
+          res.body.message.should.equal("No account associated with that email or invalid password");
         })
         .end(done)
     });
@@ -63,8 +60,7 @@ describe('Public Authentication Service', function() {
         .send('password=incorrectPassword')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.email.should.equal("No account associated with that email or invalid password");
+          res.body.message.should.equal("No account associated with that email or invalid password");
         })
         .end(done)
     });
@@ -76,8 +72,7 @@ describe('Public Authentication Service', function() {
         .send('password=1234567')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.password.should.equal("Password must have at least 8 characters.");
+          res.body.message.should.equal("Password must have at least 8 characters.");
         })
         .end(done)
     });
@@ -104,7 +99,6 @@ describe('Public Authentication Service', function() {
         .send('city=Belfast')
         .expect(200)
         .expect(function(res) {
-          res.body.success.should.equal(true);
           res.body.message.should.equal("You have successfully signed up! Now you should be able to log in.");
         })
         .end(done)
@@ -120,24 +114,7 @@ describe('Public Authentication Service', function() {
         .send('city=Belfast')
         .expect(409)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.email.should.equal("This email is already taken.");
-        })
-        .end(done)
-    });
-    
-    it('returns status code 409 with confilicting userURL', function(done) {
-      request(app)
-        .post('/auth/signup')
-        .send('email=test1234@hotmail.com')
-        .send('password=password')
-        .send('userURL=userURL123')
-        .send('displayName=testname')
-        .send('city=Belfast')
-        .expect(409)
-        .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.userURL.should.equal("This userURL is already taken.");
+          res.body.message.should.equal("This email is already taken.");
         })
         .end(done)
     });
@@ -153,8 +130,37 @@ describe('Public Authentication Service', function() {
         .send('password=password')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.email.should.equal("Please provide a valid email address.");
+          res.body.message.should.equal("Please provide a valid email address.");
+        })
+        .end(done)
+    });
+    
+    it('returns status code 409 with confilicting userURL', function(done) {
+      request(app)
+        .post('/auth/signup')
+        .send('email=test1234@hotmail.com')
+        .send('password=password')
+        .send('userURL=userURL123')
+        .send('displayName=testname')
+        .send('city=Belfast')
+        .expect(409)
+        .expect(function(res) {
+          res.body.message.should.equal("This userURL is already taken.");
+        })
+        .end(done)
+    });
+    
+    it.skip('returns status code 400 with userURL over 20 characters', function(done) {
+      request(app)
+        .post('/auth/signup')
+        .send('email=nonConflictingEmail@hotmail.com')
+        .send('password=password')
+        .send('userURL=userURLThatIs21Charrr')
+        .send('displayName=testname')
+        .send('city=Belfast')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("UserURL must be under 20 characters");
         })
         .end(done)
     });
@@ -169,8 +175,7 @@ describe('Public Authentication Service', function() {
         .send('city=Belfast')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.password.should.equal("Password must have at least 8 characters.");
+          res.body.message.should.equal("Password must have at least 8 characters.");
         })
         .end(done)
     });
@@ -185,8 +190,7 @@ describe('Public Authentication Service', function() {
         .send('city=Belfast')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.password.should.equal("Password can have a maximum of 50 characters.");
+          res.body.message.should.equal("Password can have a maximum of 50 characters.");
         })
         .end(done)
     });
@@ -201,8 +205,7 @@ describe('Public Authentication Service', function() {
         .send('city=invalidCity')
         .expect(400)
         .expect(function(res) {
-          res.body.success.should.equal(false);
-          res.body.errors.city.should.equal("Invalid City");
+          res.body.message.should.equal("Invalid City");
         })
         .end(done)
     });

@@ -81,8 +81,7 @@ exports.addProfilePictureToUser = function(req, res) {
 
   writestream.on('close', function(file) {
     uploadedFileId = file._id;
-    console.log(file.filename + 'Written To DB');
-
+    
     var query = User.update({
       trackURL: req.body.userURL
     }, {

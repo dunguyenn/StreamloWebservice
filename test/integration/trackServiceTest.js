@@ -20,10 +20,10 @@ describe('Public Track Service', function() {
         .get('/tracks?q=november&page=0')
         .expect(200, done)
     });
-    it('returns status code 204 with non-existent track name', function(done) {
+    it('returns status code 404 with non-existent track name', function(done) {
       request(app)
         .get('/tracks?q=nonExistentTrack&page=0')
-        .expect(204, done)
+        .expect(404, done)
     });
     it('returns status code 200 with valid data and no page query string', function(done) {
       request(app)
@@ -38,10 +38,10 @@ describe('Public Track Service', function() {
         .get('/tracks/november')
         .expect(200, done)
     });
-    it('returns status code 204 with non-existent track name', function(done) {
+    it('returns status code 404 with non-existent track name', function(done) {
       request(app)
         .get('/tracks/nonExistentTrack')
-        .expect(204, done)
+        .expect(404, done)
     });
   });
 });

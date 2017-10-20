@@ -20,15 +20,5 @@ describe('Public User Service', function() {
         .get('/users/count/byDisplayname?q=test1')
         .expect(200, done)
     });
-    it('returns status code 204 with non-existent track name', function(done) {
-      request(app)
-        .get('/tracks?q=nonExistentTrack&page=0')
-        .expect(204, done)
-    });
-    it('returns status code 200 with valid data and no page query string', function(done) {
-      request(app)
-        .get('/tracks?q=november')
-        .expect(200, done)
-    });
   });
 });

@@ -45,7 +45,7 @@ exports.getTracksByTitle = (req, res) => {
       if (err) {
         res.sendStatus(500);
       } else if (_.isEmpty(results)) {
-        res.sendStatus(204)
+        res.sendStatus(404)
       } else {
         response.tracks = results;
         getNumberOfTracksByTitle(trackTitle, (err, results) => {
@@ -100,7 +100,7 @@ exports.getTrackByURL = function(req, res) {
     if (err)
       res.sendStatus(500);
     else if (_.isEmpty(results)) {
-      res.sendStatus(204)
+      res.sendStatus(404)
     } else {
       res.json(results);
     }

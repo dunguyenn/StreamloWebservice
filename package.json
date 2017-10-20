@@ -12,7 +12,7 @@
     "build": "concurrently 'nodemon app.js' 'npm run unitTestWatch'",
     "intTest": "echo 'Starting Integration Tests\n' && mocha -c -R spec test/integration && echo 'Finished Integration Tests\n'",
     "unitTestWatch": "mocha -c -R spec test/unit --watch",
-    "unitTest": "mocha -c -R spec test/unit",
+    "unitTest": "echo 'Starting Unit Tests\n' && mocha -c -R spec test/unit && echo 'Finished Unit Tests\n'",
     "ci": "npm run intTest -s && npm run unitTest -s"
   },
   "author": "",

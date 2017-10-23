@@ -96,10 +96,20 @@ function validateLoginForm(payload) {
     }
   }
 
-  if (typeof payload.password !== 'string' || payload.password.trim().length < 8) {
+  if (!payload.password || typeof payload.password !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a valid password."
+    }
+  } else if (payload.password.trim().length < 8) {
     return {
       success: false,
       message: "Password must have at least 8 characters."
+    }
+  } else if (payload.password.trim().length > 50) {
+    return {
+      success: false,
+      message: "Password can have a maximum of 50 characters."
     }
   }
 

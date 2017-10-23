@@ -41,6 +41,17 @@ describe('Public Authentication Service', function() {
         .end(done)
     });
     
+    it('returns status code 400 with no email sent', function(done) {
+      request(app)
+        .post('/auth/login')
+        .send('password=password')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Please provide a valid email address.");
+        })
+        .end(done)
+    });
+    
     it('returns status code 400 with non-existent email', function(done) {
       request(app)
         .post('/auth/login')
@@ -65,6 +76,17 @@ describe('Public Authentication Service', function() {
         .end(done)
     });
     
+    it('returns status code 400 with no password sent', function(done) {
+      request(app)
+        .post('/auth/login')
+        .send('email=test@hotmail.com')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Please provide a valid password.");
+        })
+        .end(done)
+    });
+    
     it('returns status code 400 with password under 8 characters', function(done) {
       request(app)
         .post('/auth/login')
@@ -73,6 +95,18 @@ describe('Public Authentication Service', function() {
         .expect(400)
         .expect(function(res) {
           res.body.message.should.equal("Password must have at least 8 characters.");
+        })
+        .end(done)
+    });
+    
+    it('returns status code 400 with password over 50characters', function(done) {
+      request(app)
+        .post('/auth/login')
+        .send('email=test@hotmail.com')
+        .send('password=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Password can have a maximum of 50 characters.");
         })
         .end(done)
     });

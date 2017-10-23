@@ -28,10 +28,15 @@ module.exports = new PassportLocalStrategy({
         let patt = new RegExp(/email/);
         let isDuplicateEmail = patt.test(err.message);
         if(isDuplicateEmail) {
-          return done({ httpStatusCode: 409, message: "This email is already taken." })
+          return done({ httpStatusCode: 409, message: "This email is already taken." });
         }
         return done({ httpStatusCode: 409, message: "This userURL is already taken." });
       }
+      
+      if(err.errors.city.message == "City validation failed") {
+        return done({ httpStatusCode: 400, message: "Invalid City" })
+      }
+
       return done({ httpStatusCode: 500, message: "Internal Server Error" });
     }
     return done(null, newUser);

@@ -15,8 +15,8 @@ var emailAddressValidator = [
 
 // Custom emunerations
 var cityEnu = {
-  values: 'Belfast Derry'.split(' '),
-  message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
+  values: "Belfast Derry".split(' '),
+  message: "City validation failed"
 };
 
 function toLower(val) {
@@ -38,7 +38,7 @@ var userModel = new Schema({
     maxlength: 50,
     minLength: 8
   },
-  userURL: { // This will be users unique page url
+  userURL: {
     type: String,
     required: true,
     maxlength: 20,
@@ -52,8 +52,6 @@ var userModel = new Schema({
   city: {
     type: String,
     required: true,
-    maxlength: 20,
-    minLength: 5,
     enum: cityEnu
   },
   numberOfFollowers: {

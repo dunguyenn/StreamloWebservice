@@ -135,32 +135,31 @@ describe('Public Authentication Service', function() {
         .end(done)
     });
     
-    it('returns status code 409 with confilicting userURL', function(done) {
+    it('returns status code 400 with no email sent', function(done) {
       request(app)
         .post('/auth/signup')
-        .send('email=test1234@hotmail.com')
         .send('password=password')
         .send('userURL=userURL123')
         .send('displayName=testname')
         .send('city=Belfast')
-        .expect(409)
+        .send('password=password')
+        .expect(400)
         .expect(function(res) {
-          res.body.message.should.equal("This userURL is already taken.");
+          res.body.message.should.equal("Please provide a valid email address.");
         })
         .end(done)
     });
     
-    it.skip('returns status code 400 with userURL over 20 characters', function(done) {
+    it('returns status code 400 with no password sent', function(done) {
       request(app)
         .post('/auth/signup')
-        .send('email=nonConflictingEmail@hotmail.com')
-        .send('password=password')
-        .send('userURL=userURLThatIs21Charrr')
+        .send('email=test123@hotmail.com')
+        .send('userURL=userURL123')
         .send('displayName=testname')
         .send('city=Belfast')
         .expect(400)
         .expect(function(res) {
-          res.body.message.should.equal("UserURL must be under 20 characters");
+          res.body.message.should.equal("Please provide a valid password.");
         })
         .end(done)
     });
@@ -195,7 +194,65 @@ describe('Public Authentication Service', function() {
         .end(done)
     });
     
-    it.skip('returns status code 400 with invalid city name', function(done) {
+    it('returns status code 400 with no userURL sent', function(done) {
+      request(app)
+        .post('/auth/signup')
+        .send('email=test123@hotmail.com')
+        .send('password=password')
+        .send('displayName=testname')
+        .send('city=Belfast')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Please provide a userURL.");
+        })
+        .end(done)
+    });
+    
+    it('returns status code 409 with confilicting userURL', function(done) {
+      request(app)
+        .post('/auth/signup')
+        .send('email=test1234@hotmail.com')
+        .send('password=password')
+        .send('userURL=userURL123')
+        .send('displayName=testname')
+        .send('city=Belfast')
+        .expect(409)
+        .expect(function(res) {
+          res.body.message.should.equal("This userURL is already taken.");
+        })
+        .end(done)
+    });
+    
+    it('returns status code 400 with userURL over 20 characters', function(done) {
+      request(app)
+        .post('/auth/signup')
+        .send('email=nonConflictingEmail@hotmail.com')
+        .send('password=password')
+        .send('userURL=userURLThatIs21Charrr')
+        .send('displayName=testname')
+        .send('city=Belfast')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("UserURL can have a maximum of 20 characters");
+        })
+        .end(done)
+    });
+    
+    it('returns status code 400 with no city name sent', function(done) {
+      request(app)
+        .post('/auth/signup')
+        .send('email=nonConflictingEmail@hotmail.com')
+        .send('password=password')
+        .send('userURL=userURL123')
+        .send('displayName=testname')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Please provide a city name.");
+        })
+        .end(done)
+    });
+  
+    it('returns status code 400 with invalid city name', function(done) {
       request(app)
         .post('/auth/signup')
         .send('email=nonConflictingEmail@hotmail.com')

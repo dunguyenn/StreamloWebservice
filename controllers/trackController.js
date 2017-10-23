@@ -100,7 +100,9 @@ exports.getTrackByURL = function(req, res) {
     if (err)
       res.sendStatus(500);
     else if (_.isEmpty(results)) {
-      res.sendStatus(404)
+      res.status(404).json({
+        message: "No track found with this trackURL"
+      });
     } else {
       res.json(results);
     }

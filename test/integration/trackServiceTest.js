@@ -36,12 +36,17 @@ describe('Public Track Service', function() {
     it('returns status code 200 with valid data', function(done) {
       request(app)
         .get('/tracks/november')
-        .expect(200, done)
+        .expect(200)
+        .end(done)
     });
     it('returns status code 404 with non-existent track name', function(done) {
       request(app)
         .get('/tracks/nonExistentTrack')
-        .expect(404, done)
+        .expect(404)
+        .expect(function(res) {
+          res.body.message.should.equal("No track found with this trackURL");
+        })
+        .end(done)
     });
   });
 });

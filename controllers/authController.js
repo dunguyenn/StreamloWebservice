@@ -32,6 +32,30 @@ function validateSignupForm(payload) {
       success: false,
       message: "Please provide a userURL."
     }
+  } else if (payload.userURL.trim().length > 20) {
+    return {
+      success: false,
+      message: "UserURL can have a maximum of 20 characters"
+    }
+  }
+  
+  if (!payload.displayName || typeof payload.displayName !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a display name."
+    }
+  } else if (payload.displayName.trim().length > 20) {
+    return {
+      success: false,
+      message: "Display name can have a maximum of 20 characters"
+    }
+  }
+  
+  if (!payload.city || typeof payload.city !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a city name."
+    }
   }
 
   return {

@@ -9,7 +9,7 @@
   "main": "app.js",
   "scripts": {
     "start": "npm run build",
-    "build": "nodemon --watch . --exec 'npm run test || true'",
+    "build": "nodemon -x 'npm run test || true && node app.js'",
     "test": "echo 'Starting Tests\n' && nyc mocha -c -R spec test/integration test/unit && echo 'Finished Tests\n'",
     "ci": "npm run test -s"
   },

@@ -6,7 +6,7 @@ let assert = chai.assert;
 
 var User = require('../../models/userModel.js');
 
-describe('Public Authentication Service', function() {
+describe('Public Authentication Service Integration Tests', function() {
   describe('POST /auth/login', function() {
     var app;
     beforeEach(function() {

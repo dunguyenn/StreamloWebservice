@@ -1,7 +1,6 @@
 # Dependency directory
 node_modules
 
-
 # API keys and secrets
 .env
 
@@ -19,3 +18,7 @@ Thumbs.db
 
 #Distribution directory (where content placed after gulp is run)
 dist
+
+# Istanbul test coverage generated files
+.nyc_output
+coverage

@@ -4,7 +4,7 @@ const chai = require('chai');
 let should = chai.should();
 let assert = chai.assert;
 
-describe('Public User Service', function() {
+describe('Public User Service Integration Tests', function() {
   var app;
 
   beforeEach(function() {

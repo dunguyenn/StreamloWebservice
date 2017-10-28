@@ -4,7 +4,7 @@ const chai = require('chai');
 let should = chai.should();
 let assert = chai.assert;
 
-describe('Public Track Service', function() {
+describe('Public Track Service Integration Tests', function() {
   var app;
 
   beforeEach(function() {

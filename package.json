@@ -8,12 +8,10 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "npm run intTest -s && npm run build -s",
-    "build": "concurrently 'nodemon app.js' 'npm run unitTestWatch'",
-    "intTest": "echo 'Starting Integration Tests\n' && mocha -c -R spec test/integration && echo 'Finished Integration Tests\n'",
-    "unitTestWatch": "mocha -c -R spec test/unit --watch",
-    "unitTest": "echo 'Starting Unit Tests\n' && mocha -c -R spec test/unit && echo 'Finished Unit Tests\n'",
-    "ci": "npm run intTest -s && npm run unitTest -s"
+    "start": "npm run build",
+    "build": "nodemon app.js --exec 'npm run test && node app.js'",
+    "test": "echo 'Starting Tests\n' && nyc mocha -c -R spec test/integration test/unit && echo 'Finished Tests\n'",
+    "ci": "npm run test -s"
   },
   "author": "",
   "license": "ISC",
@@ -41,6 +39,7 @@
     "dotenv": "^4.0.0",
     "mocha": "^2.5.3",
     "nodemon": "^1.12.1",
+    "nyc": "^11.2.1",
     "rewire": "^2.5.2",
     "supertest": "^3.0.0"
   }

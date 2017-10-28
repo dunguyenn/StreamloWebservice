@@ -77,6 +77,10 @@ describe('Protected Track Service', function() {
   });
   
   describe('POST /tracks/:trackURL/addComment', function() {
+    after(function(done) {
+      // TODO add removing test comment after this test suite has finished
+      done()
+    });
     it('returns status code 200 with valid data', function(done) {
       request(app)
         .post('/tracks/november/addComment')

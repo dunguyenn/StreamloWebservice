@@ -88,11 +88,11 @@ var trackSchema = new Schema({
     type: Date,
     validate: dateUploadedValidator
   },
-  trackBinary: {
+  trackBinaryId: {
     type: ObjectId,
     required: true
   },
-  albumArtBinary: {
+  albumArtBinaryId: {
     type: ObjectId
   },
   comments: [{

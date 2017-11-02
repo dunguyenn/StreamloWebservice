@@ -14,7 +14,7 @@ describe('Public Track Service Integration Tests', function() {
     app.close();
   });
   
-  describe('GET /tracks', function() {
+  describe('GET /tracks/', function() {
     it('returns status code 200 with valid data', function(done) {
       request(app)
         .get('/tracks?q=november&page=0')
@@ -35,7 +35,7 @@ describe('Public Track Service Integration Tests', function() {
   describe('GET /tracks/:trackURL', function() {
     it('returns status code 200 with valid data', function(done) {
       request(app)
-        .get('/tracks/november')
+        .get('/tracks/november1')
         .expect(200)
         .end(done)
     });
@@ -47,6 +47,46 @@ describe('Public Track Service Integration Tests', function() {
           res.body.message.should.equal("No track found with this trackURL");
         })
         .end(done)
+    });
+  });
+  
+  describe('GET /tracks/:trackId/stream', function() {
+    it('returns status code 200 with valid trackBinaryId', function(done) {
+      request(app)
+        .get('/tracks/59f5c1887483f906c2516909/stream')
+        .expect(200)
+        .expect(function(res) {
+          res.header['content-type'].should.equal("audio/mp3");
+          res.header['accept-ranges'].should.equal("bytes");
+        })
+        .end(done)
+    });
+    it('returns status code 400 with invalid trackBinaryId', function(done) {
+      request(app)
+        .get('/tracks/123/stream')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Invalid trackID");
+        })
+        .end(done)
+    });
+    it('returns status code 404 with non existent trackBinaryId', function(done) {
+      request(app)
+        .get('/tracks/69f5c1be7483f906c25169ae/stream')
+        .expect(404)
+        .end(done)
+    });
+  });
+  
+  describe.skip('GET /tracks/uploaderId/:uploaderId', function() {
+    it('does something', function(done) {
+      done();
+    });
+  });
+  
+  describe.skip('GET /tracks/:city/chart', function() {
+    it('does something', function(done) {
+      done();
     });
   });
 });
@@ -75,6 +115,12 @@ describe('Protected Track Service', function() {
   afterEach(function() {
     app.close();
   });
+
+  describe.skip('POST /tracks/', function() {
+    it('does something', function(done) {
+      done();
+    });
+  });
   
   describe('POST /tracks/:trackURL/addComment', function() {
     after(function(done) {
@@ -98,6 +144,24 @@ describe('Protected Track Service', function() {
         .send('date=' + Date.now())
         .send('body=testComment')
         .expect(400, done)
+    });
+  });
+  
+  describe.skip('POST /tracks/:trackURL/addDescription', function() {
+    it('does something', function(done) {
+      done();
+    });
+  });
+  
+  describe.skip('PATCH /tracks/:trackURL', function() {
+    it('does something', function(done) {
+      done();
+    });
+  });
+  
+  describe.skip('DELETE /tracks/:trackURL', function() {
+    it('does something', function(done) {
+      done();
     });
   });
 });

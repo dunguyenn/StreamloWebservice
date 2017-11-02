@@ -1,29 +1,52 @@
 var Track = require('../models/trackModel.js');
 var User = require('../models/userModel.js');
-var mongoose = require('mongoose');
 var _ = require('lodash');
 var fs = require('fs');
-var grid = require('gridfs-stream');
+var mongoose = require('mongoose');
 var conn = mongoose.connection;
-grid.mongo = mongoose.mongo;
+var mongodb = require('mongodb');
+var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
+var db;
 
-// TODO support seeking requests from clientside
+// Initialize connection once
+MongoClient.connect(process.env.MONGODB, function(err, database) {
+  if(err) {
+    console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
+    process.exit(1);
+  }
+  db = database;
+});
+
 exports.getTrackStreamByGridFSId = function(req, res) {
-  var trackId = req.params.trackId;
-  var gfs = grid(conn.db);
-
-  gfs.findOne({
-    _id: trackId
-  }, function(err, file) {
-    if (err) {
-      res.json(err);
-    } else {
-      var mime = 'audio/mp3';
-      res.set('Content-Type', mime);
-      var read_stream = gfs.createReadStream(file);
-      read_stream.pipe(res);
-    }
-  });
+  let trackId;
+  if(!ObjectID.isValid(req.params.trackId)) {
+    res.status(400).json({message: "Invalid trackID"});
+  } else {
+    trackId = new ObjectID(req.params.trackId);
+  
+    var bucket = new mongodb.GridFSBucket(db, {
+      bucketName: 'fs'
+    });
+    
+    res.set('content-type', 'audio/mp3');
+    res.set('accept-ranges', 'bytes');
+    
+    // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
+    var downloadStream = bucket.openDownloadStream(trackId);
+    
+    downloadStream.on('data', (chunk) => {
+      res.write(chunk);
+    });
+    
+    downloadStream.on('error', () => {
+      res.sendStatus(404);
+    });
+    
+    downloadStream.on('end', () => {
+      res.end();
+    });
+  }
 };
 
 exports.getTracksByTitle = (req, res) => {
@@ -128,8 +151,40 @@ exports.getChartOfCity = function(req, res) {
 };
 
 exports.postTrack = function(req, res) {
-  var uploadedFileId;
+  //var uploadedFileId;
+  
+  var bucket = new mongodb.GridFSBucket(db, {
+    bucketName: 'songs'
+  });
 
+  var filePath = req.file.path;
+  
+  fs.createReadStream(filePath)
+    .pipe(bucket.openUploadStream(req.body.title))
+    .on('error', function(error) {
+      res.sendStatus(500)
+    })
+    .on('finish', function() {
+      res.sendStatus(200)
+    });
+    
+  //   var uploadStream = bucket.openUploadStream(filePath);
+  //   
+  //   // emitter.once(eventName, listener)
+  //   // Adds a one time listener function for the event named eventName. The next time eventName is triggered, 
+  //   // this listener is removed and then invoked.  
+  //   uploadStream.once('finish', function() {
+  //     console.log("finish")
+  //     res.sendStatus(200);
+  //   });
+  //   
+  //   uploadStream.once('error', function() {
+  //     console.log("error")
+  //     res.sendStatus(500);
+  //   });
+
+
+  /*
   var fileName = req.body.title;
   var uploderId = req.body.uploaderId;
 
@@ -157,7 +212,7 @@ exports.postTrack = function(req, res) {
       dateUploaded: req.body.dateUploaded,
       uploaderId: req.body.uploaderId,
       description: req.body.description,
-      trackBinary: uploadedFileId
+      trackBinaryId: uploadedFileId
     });
 
     entry.save(function(err) { // Attempt to save track
@@ -232,6 +287,7 @@ exports.postTrack = function(req, res) {
       }
     });
   });
+  */
 };
 
 // TODO updating track name

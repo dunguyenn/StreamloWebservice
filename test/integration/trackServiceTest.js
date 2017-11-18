@@ -4,6 +4,9 @@ const chai = require('chai');
 let should = chai.should();
 let assert = chai.assert;
 
+const mongodb = require('mongodb');
+const mongoose = require('mongoose');
+
 describe('Public Track Service Integration Tests', function() {
   var app;
 
@@ -53,7 +56,7 @@ describe('Public Track Service Integration Tests', function() {
   describe('GET /tracks/:trackId/stream', function() {
     it('returns status code 200 with valid trackBinaryId', function(done) {
       request(app)
-        .get('/tracks/59f5c1887483f906c2516909/stream')
+        .get('/tracks/59c1793d823ebd9964b3188b/stream')
         .expect(200)
         .expect(function(res) {
           res.header['content-type'].should.equal("audio/mp3");
@@ -94,6 +97,7 @@ describe('Public Track Service Integration Tests', function() {
 describe('Protected Track Service', function() {
   var app;
   var token;
+  var userId;
 
   before(function(done) {
     app = require('../../app');
@@ -105,6 +109,7 @@ describe('Protected Track Service', function() {
       .expect(200)
       .end(function(err, res) {
         token = res.body.token;
+        userId = res.body.profile.id;
         app.close();
         done();
       });
@@ -117,8 +122,52 @@ describe('Protected Track Service', function() {
   });
 
   describe.skip('POST /tracks/', function() {
-    it('does something', function(done) {
-      done();
+    let testTrackId;
+    after(function(done) {
+      // TODO add removing test track after post /tracks/ tests complete
+      let db = mongoose.connection.db;
+      var bucket = new mongodb.GridFSBucket(db, {
+        bucketName: 'fs'
+      });
+      bucket.drop();
+      done()
+    });
+    it('retuns status code 200 with valid data', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', Date.now())
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(201)
+        .expect(function(res) {
+          // TODO check for message && id
+          testTrackId = res.body.id;
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with missing track title', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', Date.now())
+        .field('uploaderId', '59c1764e79ec4c846007735f')
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No track title in request body.");
+        })
+        .end(done)
     });
   });
   

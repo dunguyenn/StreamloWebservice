@@ -34,6 +34,7 @@ let options = {
   bufferMaxEntries: 0 // If not connected, return errors immediately rather than waiting for reconnect
 };
 
+mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGODB, options);
 mongoose.connection.on('error', () => {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');

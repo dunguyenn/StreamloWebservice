@@ -1,10 +1,11 @@
-var Track = require('../models/trackModel.js');
-var User = require('../models/userModel.js');
-var _ = require('lodash');
-var fs = require('fs');
-var mongoose = require('mongoose');
-var mongodb = require('mongodb');
-var ObjectID = require('mongodb').ObjectID;
+const Track = require('../models/trackModel.js');
+const User = require('../models/userModel.js');
+const _ = require('lodash');
+const fs = require('fs');
+const mongoose = require('mongoose');
+const mongodb = require('mongodb');
+const ObjectID = require('mongodb').ObjectID;
+const { Readable } = require('stream');
 
 exports.getTrackStreamByGridFSId = function(req, res) {
   let trackId;
@@ -139,62 +140,50 @@ exports.getChartOfCity = function(req, res) {
     });
 };
 
-exports.postTrack = function(req, res) {
-  //var uploadedFileId;
-  let db = req.app.locals.db;
+function validatePostTrackForm(payload) {
+  if (!payload.title || typeof payload.title !== 'string') {
+    return {
+      success: false,
+      message: "No track title in request body."
+    }
+  }
   
-  var bucket = new mongodb.GridFSBucket(db, {
-    bucketName: 'songs'
-  });
+  return {
+    success: true
+  };
+}
 
-  var filePath = req.file.path;
-  
-  fs.createReadStream(filePath)
-    .pipe(bucket.openUploadStream(req.body.title))
-    .on('error', function(error) {
-      res.sendStatus(500)
-    })
-    .on('finish', function() {
-      res.sendStatus(200)
+exports.postTrack = (req, res) => {
+  const validationResult = validatePostTrackForm(req.body);
+  if (!validationResult.success) {
+    return res.status(400).json({
+      message: validationResult.message
     });
-    
-  //   var uploadStream = bucket.openUploadStream(filePath);
-  //   
-  //   // emitter.once(eventName, listener)
-  //   // Adds a one time listener function for the event named eventName. The next time eventName is triggered, 
-  //   // this listener is removed and then invoked.  
-  //   uploadStream.once('finish', function() {
-  //     console.log("finish")
-  //     res.sendStatus(200);
-  //   });
-  //   
-  //   uploadStream.once('error', function() {
-  //     console.log("error")
-  //     res.sendStatus(500);
-  //   });
+  }
+  
+  let trackTitle = req.body.title;
+  let uploderId = req.body.uploaderId;
 
-
-  /*
-  var fileName = req.body.title;
-  var uploderId = req.body.uploaderId;
-
-  var filePath = req.file.path;
-  var filetype = req.file.mimetype;
-
-  var gfs = grid(conn.db);
-
-  // Streaming to gridfs
-  // Filename to store in mongodb
-  var writestream = gfs.createWriteStream({
-    filename: fileName,
-    content_type: 'audio/mp3'
+  // Covert buffer to Readable Stream
+  const readableTrackStream = new Readable();
+  readableTrackStream.push(req.file.buffer);
+  readableTrackStream.push(null);
+  
+  let db = mongoose.connection.db;
+  let bucket = new mongodb.GridFSBucket(db, {
+    bucketName: 'fs'
   });
-  fs.createReadStream(filePath).pipe(writestream);
 
-  writestream.on('close', function(file) {
-    uploadedFileId = file._id;
+  let uploadStream = bucket.openUploadStream(trackTitle, { contentType: 'audio/mp3' });
+  let trackGridFSId = uploadStream.id;
+  readableTrackStream.pipe(uploadStream);
 
-    var entry = new Track({
+  uploadStream.on('error', () => {
+    res.status(500).json({ message: "Error uploading file" });
+  });
+
+  uploadStream.on('finish', () => {
+    var track = new Track({
       title: req.body.title,
       genre: req.body.genre,
       city: req.body.city,
@@ -202,82 +191,40 @@ exports.postTrack = function(req, res) {
       dateUploaded: req.body.dateUploaded,
       uploaderId: req.body.uploaderId,
       description: req.body.description,
-      trackBinaryId: uploadedFileId
+      trackBinaryId: trackGridFSId
     });
-
-    entry.save(function(err) { // Attempt to save track
+    
+    track.save(function(err) { // Attempt to save track
       if (err) { // In event of failed track save remove gridfs file
-        gfs.remove({
-          _id: uploadedFileId
-        }, function(gfserr) {
-          if (gfserr) {
-            console.log("error removing gridfs file");
-          }
-        });
-        console.log(err);
-        fs.unlink(filePath);
-        res.sendStatus(500);
-      } else { // In event of sucessful track save add uploaded gridfs trackId to uploaders uploaded files object
-        var query = User.findByIdAndUpdate(
+        bucket.delete(trackGridFSId);
+        res.status(500).json({ message: "Error uploading file" });
+      } else { // If track model saves, update uploaders user model
+        User.findByIdAndUpdate(
           uploderId, {
             $push: {
               "uploadedTracks": {
-                uploadedTrackId: uploadedFileId
+                uploadedTrackId: trackGridFSId
               }
-            }
-          }, {
-            safe: true,
-            upsert: true,
-            new: true
-          },
-          function(gfserr, model) {
-            if (gfserr) { // In event of failed query remove gridfs file
-              gfs.remove({
-                _id: uploadedFileId
-              }, function(gfserr) {
-                if (gfserr) {
-                  console.log("error removing gridfs file");
-                }
-                console.log('Removed gridfs file after unsuccessful db update');
-              });
-              fs.unlink(filePath);
-              res.sendStatus(500);
-            }
-          }
-        );
-
-        // Also increment number of uploaded tracks on uploder
-        query = User.findByIdAndUpdate(
-          uploderId, {
+            },
             $inc: {
               "numberOfTracksUploaded": 1
             }
-          }, {
-            safe: true,
-            upsert: true,
-            new: true
-          },
-          function(gfserr, model) {
-            if (gfserr) { // In event of failed query remove gridfs file
-              gfs.remove({
-                _id: uploadedFileId
-              }, function(gfserr) {
-                if (gfserr) {
-                  console.log("error removing gridfs file");
-                }
-                console.log('Removed gridfs file after unsuccessful db update');
-              });
-              fs.unlink(filePath);
-              res.sendStatus(500);
+          }, { safe: true },
+          function(err) {
+            if (err) { // If uploaders user model fails to update, remove uploaded track from gridfs
+              bucket.delete(trackGridFSId);
+              res.status(500).json({ message: "Error uploading file" });
             }
           }
-        );
-        fs.unlink(filePath);
-        res.sendStatus(200);
+        );        
+        let message = {
+          message: "File uploaded successfully",
+          id: trackGridFSId
+        }
+        res.status(201).json(message);
       }
     });
   });
-  */
 };
 
 // TODO updating track name

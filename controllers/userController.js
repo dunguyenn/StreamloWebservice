@@ -1,9 +1,7 @@
 var User = require('../models/userModel.js');
 var mongoose = require('mongoose');
 var fs = require('fs');
-var grid = require('gridfs-stream');
 var conn = mongoose.connection;
-grid.mongo = mongoose.mongo;
 
 exports.getUsersByDisplayName = function(req, res) {
   let response = {};
@@ -63,49 +61,49 @@ exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
 
 // TODO get this is working
 exports.addProfilePictureToUser = function(req, res) {
-  var uploadedFileId;
-
-  var fileName = req.body.userURL;
-  var filePath = req.file.path;
-  var filetype = req.file.mimetype;
-
-  var gfs = grid(conn.db);
-
-  // Streaming to gridfs
-  // Filename to store in mongodb
-  var writestream = gfs.createWriteStream({
-    filename: fileName,
-    content_type: 'image/jpeg'
-  });
-  fs.createReadStream(filePath).pipe(writestream);
-
-  writestream.on('close', function(file) {
-    uploadedFileId = file._id;
-    
-    var query = User.update({
-      trackURL: req.body.userURL
-    }, {
-      profilePictureBinary: uploadedFileId
-    });
-
-    query.exec(function(err) {
-      if (err) {
-        gfs.remove({
-          _id: uploadedFileId
-        }, function(gfserr) {
-          if (gfserr) {
-            console.log("error removing gridfs file");
-          }
-          console.log('Removed gridfs file after unsuccessful db update');
-        });
-        fs.unlink(filePath);
-        res.status(500).send(err);
-      } else {
-        fs.unlink(filePath);
-        res.sendStatus(200);
-      }
-    });
-  });
+  // var uploadedFileId;
+  // 
+  // var fileName = req.body.userURL;
+  // var filePath = req.file.path;
+  // var filetype = req.file.mimetype;
+  // 
+  // var gfs = grid(conn.db);
+  // 
+  // // Streaming to gridfs
+  // // Filename to store in mongodb
+  // var writestream = gfs.createWriteStream({
+  //   filename: fileName,
+  //   content_type: 'image/jpeg'
+  // });
+  // fs.createReadStream(filePath).pipe(writestream);
+  // 
+  // writestream.on('close', function(file) {
+  //   uploadedFileId = file._id;
+  //   
+  //   var query = User.update({
+  //     trackURL: req.body.userURL
+  //   }, {
+  //     profilePictureBinary: uploadedFileId
+  //   });
+  // 
+  //   query.exec(function(err) {
+  //     if (err) {
+  //       gfs.remove({
+  //         _id: uploadedFileId
+  //       }, function(gfserr) {
+  //         if (gfserr) {
+  //           console.log("error removing gridfs file");
+  //         }
+  //         console.log('Removed gridfs file after unsuccessful db update');
+  //       });
+  //       fs.unlink(filePath);
+  //       res.status(500).send(err);
+  //     } else {
+  //       fs.unlink(filePath);
+  //       res.sendStatus(200);
+  //     }
+  //   });
+  // });
 };
 
 exports.getUserByURL = function(req, res) {

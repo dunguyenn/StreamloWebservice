@@ -18,26 +18,34 @@ var morgan = require('morgan')
 dotenv.config();
 
 /**
- * Connect to MongoDB.
- */
-var db = mongoose.connect(process.env.MONGODB);
-var conn = mongoose.connection;
-mongoose.connection.on('error', function() {
-  console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
-  process.exit(1);
-});
-
-/**
  * Create Express server.
  */
 var app = express();
+
+/**
+ * Connect Mongoose to MongoDB.
+ */
+let options = {
+  useMongoClient: true,
+  autoIndex: false, // Don't build indexes
+  reconnectTries: Number.MAX_VALUE, // Never stop trying to reconnect
+  reconnectInterval: 500, // Reconnect every 500ms
+  poolSize: 10, // Maintain up to 10 socket connections
+  bufferMaxEntries: 0 // If not connected, return errors immediately rather than waiting for reconnect
+};
+
+mongoose.connect(process.env.MONGODB, options);
+mongoose.connection.on('error', () => {
+  console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
+  process.exit(1);
+});
 
 /**
  * Express configuration.
  */
  // app.use is Binding application-level middleware to an instance of the app object
 app.set('port', process.env.PORT || 3001);
-app.use(cors()); 
+app.use(cors());
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({
   extended: false

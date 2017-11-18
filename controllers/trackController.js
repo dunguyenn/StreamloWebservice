@@ -3,28 +3,17 @@ var User = require('../models/userModel.js');
 var _ = require('lodash');
 var fs = require('fs');
 var mongoose = require('mongoose');
-var conn = mongoose.connection;
 var mongodb = require('mongodb');
-var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
-var db;
-
-// Initialize connection once
-MongoClient.connect(process.env.MONGODB, function(err, database) {
-  if(err) {
-    console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
-    process.exit(1);
-  }
-  db = database;
-});
 
 exports.getTrackStreamByGridFSId = function(req, res) {
   let trackId;
   if(!ObjectID.isValid(req.params.trackId)) {
-    res.status(400).json({message: "Invalid trackID"});
+    res.status(400).json({ message: "Invalid trackID" });
   } else {
     trackId = new ObjectID(req.params.trackId);
-  
+    
+    let db = mongoose.connection.db;
     var bucket = new mongodb.GridFSBucket(db, {
       bucketName: 'fs'
     });
@@ -152,6 +141,7 @@ exports.getChartOfCity = function(req, res) {
 
 exports.postTrack = function(req, res) {
   //var uploadedFileId;
+  let db = req.app.locals.db;
   
   var bucket = new mongodb.GridFSBucket(db, {
     bucketName: 'songs'

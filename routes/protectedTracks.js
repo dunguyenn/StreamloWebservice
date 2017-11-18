@@ -2,15 +2,12 @@ var express = require('express');
 var protectedTrackRoutes = express.Router();
 var trackController = require('../controllers/trackController.js');
 var jwtUtils = require('../utils/jwt');
-const multer = require('multer');
-const storage = multer.memoryStorage()
-const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 1, parts: 8 }});
 
 // Binding JWT verify middleware to protected routes
 protectedTrackRoutes.use(jwtUtils.verifyToken);
 
 // POST track to the system
-protectedTrackRoutes.post('/', upload.single('track'), function(req, res) {
+protectedTrackRoutes.post('/', function(req, res) {
   return trackController.postTrack(req, res);
 });
 

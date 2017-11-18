@@ -8,7 +8,7 @@ var bodyParser = require('body-parser')
 var dotenv = require('dotenv');
 var passport = require('passport');
 var cors = require('cors');
-var morgan = require('morgan')
+var compression = require('compression');
 
 /**
  * Load environment variables from .env file.
@@ -52,7 +52,7 @@ app.use(bodyParser.urlencoded({
   extended: false
 })); // for parsing application/x-www-form-urlencoded
 app.use(errorHandler()); // Error Handler
-//app.use(morgan('dev')); // HTTP request logger middleware
+app.use(compression());
 
 /**
  * Load Passport Strategys.

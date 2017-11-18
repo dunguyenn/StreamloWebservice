@@ -6,6 +6,9 @@ const mongoose = require('mongoose');
 const mongodb = require('mongodb');
 const ObjectID = require('mongodb').ObjectID;
 const { Readable } = require('stream');
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 1, parts: 8 }});
 
 exports.getTrackStreamByGridFSId = function(req, res) {
   let trackId;
@@ -154,75 +157,80 @@ function validatePostTrackForm(payload) {
 }
 
 exports.postTrack = (req, res) => {
-  const validationResult = validatePostTrackForm(req.body);
-  if (!validationResult.success) {
-    return res.status(400).json({
-      message: validationResult.message
-    });
-  }
-  
-  let trackTitle = req.body.title;
-  let uploderId = req.body.uploaderId;
-
-  // Covert buffer to Readable Stream
-  const readableTrackStream = new Readable();
-  readableTrackStream.push(req.file.buffer);
-  readableTrackStream.push(null);
-  
-  let db = mongoose.connection.db;
-  let bucket = new mongodb.GridFSBucket(db, {
-    bucketName: 'fs'
-  });
-
-  let uploadStream = bucket.openUploadStream(trackTitle, { contentType: 'audio/mp3' });
-  let trackGridFSId = uploadStream.id;
-  readableTrackStream.pipe(uploadStream);
-
-  uploadStream.on('error', () => {
-    res.status(500).json({ message: "Error uploading file" });
-  });
-
-  uploadStream.on('finish', () => {
-    var track = new Track({
-      title: req.body.title,
-      genre: req.body.genre,
-      city: req.body.city,
-      trackURL: req.body.trackURL,
-      dateUploaded: req.body.dateUploaded,
-      uploaderId: req.body.uploaderId,
-      description: req.body.description,
-      trackBinaryId: trackGridFSId
-    });
+  upload.single('track')(req, res, (err) => {
+    if(err) {
+      return res.status(500).json({ message: 'Error uploading your track' });
+    }
+    const validationResult = validatePostTrackForm(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        message: validationResult.message
+      });
+    }
     
-    track.save(function(err) { // Attempt to save track
-      if (err) { // In event of failed track save remove gridfs file
-        bucket.delete(trackGridFSId);
-        res.status(500).json({ message: "Error uploading file" });
-      } else { // If track model saves, update uploaders user model
-        User.findByIdAndUpdate(
-          uploderId, {
-            $push: {
-              "uploadedTracks": {
-                uploadedTrackId: trackGridFSId
+    let trackTitle = req.body.title;
+    let uploderId = req.body.uploaderId;
+
+    // Covert buffer to Readable Stream
+    const readableTrackStream = new Readable();
+    readableTrackStream.push(req.file.buffer);
+    readableTrackStream.push(null);
+    
+    let db = mongoose.connection.db;
+    let bucket = new mongodb.GridFSBucket(db, {
+      bucketName: 'fs'
+    });
+
+    let uploadStream = bucket.openUploadStream(trackTitle, { contentType: 'audio/mp3' });
+    let trackGridFSId = uploadStream.id;
+    readableTrackStream.pipe(uploadStream);
+
+    uploadStream.on('error', () => {
+      res.status(500).json({ message: "Error uploading file" });
+    });
+
+    uploadStream.on('finish', () => {
+      var track = new Track({
+        title: req.body.title,
+        genre: req.body.genre,
+        city: req.body.city,
+        trackURL: req.body.trackURL,
+        dateUploaded: req.body.dateUploaded,
+        uploaderId: req.body.uploaderId,
+        description: req.body.description,
+        trackBinaryId: trackGridFSId
+      });
+      
+      track.save(function(err) { // Attempt to save track
+        if (err) { // In event of failed track save remove gridfs file
+          bucket.delete(trackGridFSId);
+          res.status(500).json({ message: "Error uploading file" });
+        } else { // If track model saves, update uploaders user model
+          User.findByIdAndUpdate(
+            uploderId, {
+              $push: {
+                "uploadedTracks": {
+                  uploadedTrackId: trackGridFSId
+                }
+              },
+              $inc: {
+                "numberOfTracksUploaded": 1
               }
-            },
-            $inc: {
-              "numberOfTracksUploaded": 1
+            }, { safe: true },
+            function(err) {
+              if (err) { // If uploaders user model fails to update, remove uploaded track from gridfs
+                bucket.delete(trackGridFSId);
+                res.status(500).json({ message: "Error uploading file" });
+              }
             }
-          }, { safe: true },
-          function(err) {
-            if (err) { // If uploaders user model fails to update, remove uploaded track from gridfs
-              bucket.delete(trackGridFSId);
-              res.status(500).json({ message: "Error uploading file" });
-            }
+          );        
+          let message = {
+            message: "File uploaded successfully",
+            id: trackGridFSId
           }
-        );        
-        let message = {
-          message: "File uploaded successfully",
-          id: trackGridFSId
+          res.status(201).json(message);
         }
-        res.status(201).json(message);
-      }
+      });
     });
   });
 };

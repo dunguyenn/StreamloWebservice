@@ -159,7 +159,7 @@ function validatePostTrackForm(payload) {
 exports.postTrack = (req, res) => {
   upload.single('track')(req, res, (err) => {
     if(err) {
-      return res.status(500).json({ message: 'Error uploading your track' });
+      return res.status(400).json({ message: 'Error uploading your track' });
     }
     const validationResult = validatePostTrackForm(req.body);
     if (!validationResult.success) {
@@ -201,7 +201,7 @@ exports.postTrack = (req, res) => {
         trackBinaryId: trackGridFSId
       });
       
-      track.save(function(err) { // Attempt to save track
+      track.save(function(err, track) { // Attempt to save track
         if (err) { // In event of failed track save remove gridfs file
           bucket.delete(trackGridFSId);
           res.status(500).json({ message: "Error uploading file" });
@@ -226,7 +226,7 @@ exports.postTrack = (req, res) => {
           );        
           let message = {
             message: "File uploaded successfully",
-            id: trackGridFSId
+            trackId: track.id
           }
           res.status(201).json(message);
         }

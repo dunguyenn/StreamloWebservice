@@ -6,6 +6,7 @@ let assert = chai.assert;
 
 const mongodb = require('mongodb');
 const mongoose = require('mongoose');
+const Track = require('../../models/trackModel.js');
 
 describe('Public Track Service Integration Tests', function() {
   var app;
@@ -121,16 +122,14 @@ describe('Protected Track Service', function() {
     app.close();
   });
 
-  describe.skip('POST /tracks/', function() {
+  describe('POST /tracks/', function() {
     let testTrackId;
     after(function(done) {
-      // TODO add removing test track after post /tracks/ tests complete
-      let db = mongoose.connection.db;
-      var bucket = new mongodb.GridFSBucket(db, {
-        bucketName: 'fs'
+      Track.findOne({ _id: testTrackId }, function(err, track){
+        track.remove(function(err){
+           done();
+        });
       });
-      bucket.drop();
-      done()
     });
     it('retuns status code 200 with valid data', function(done) {
       request(app)
@@ -146,8 +145,7 @@ describe('Protected Track Service', function() {
         .attach('track', 'test/littleidea.mp3')
         .expect(201)
         .expect(function(res) {
-          // TODO check for message && id
-          testTrackId = res.body.id;
+          testTrackId = res.body.trackId;
         })
         .end(done)
     });

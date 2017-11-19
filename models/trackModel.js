@@ -1,3 +1,4 @@
+const mongodb = require('mongodb');
 var mongoose = require('mongoose');
 var validator = require('validator');
 var Schema = mongoose.Schema;
@@ -100,6 +101,18 @@ var trackSchema = new Schema({
     datePosted: Date,
     body: String
   }]
+});
+
+// On removal of a track, also remove the track binary stored in gridfs
+trackSchema.post('remove', function(doc) {
+  let trackBinaryGridFSId = doc.trackBinaryId
+  let db = mongoose.connection.db;
+  var bucket = new mongodb.GridFSBucket(db, {
+    bucketName: 'fs'
+  });
+  bucket.delete(trackBinaryGridFSId, (err) => {
+    return;
+  });
 });
 
 module.exports = mongoose.model('Track', trackSchema);

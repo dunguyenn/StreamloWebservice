@@ -287,6 +287,79 @@ describe('Protected Track Service', function() {
         })
         .end(done)
     });
+    
+    it('retuns status code 400 and correct message with no uploaderId in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', validDate)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No uploaderId in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with no description in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', validDate)
+        .field('uploaderId', userId)
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No description in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with no track in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', validDate)
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No track in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with track key set to string value', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', validDate)
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .field('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Error uploading your track")
+        })
+        .end(done)
+    });
   });
   
   describe('POST /tracks/:trackURL/addComment', function() {

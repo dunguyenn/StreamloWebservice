@@ -15,18 +15,14 @@ var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are 
 ];
 
 var dateUploadedValidator = [ // Only dates after date.now permitted
-  function(val) {
-    // TODO get this working with moment dates
-    return true
-
-    // var date = new Date();
-    // date.setHours(date.getHours() - 1);
-    // 
-    // if (val < date) {
-    //   return false;
-    // } else {
-    //   return true
-    // }
+  function(trackUploadDateISOString) {
+    let dateNow = moment().subtract(30, 'minute');
+    let trackUploadedDate = moment(trackUploadDateISOString);
+    if(trackUploadedDate.isBefore(dateNow)) {
+      return false;
+    } else {
+      return true;
+    }
   },
   // Customer error text...
   'Enter a valid date'

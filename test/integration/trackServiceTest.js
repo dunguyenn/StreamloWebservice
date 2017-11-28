@@ -129,7 +129,7 @@ describe('Protected Track Service', function() {
     let testTrackId;
     let validDate =  moment().toISOString();
     let invalidDateFormat = Date.now()
-    let dateThirtyMinuteBeforeDateNow = moment().subtract(30, 'minute').toISOString();
+    let dateThirtyOneMinuteBeforeDateNow = moment().subtract(31, 'minute').toISOString();
     
     after(function(done) {
       Track.findOne({ _id: testTrackId }, function(err, track){
@@ -269,14 +269,14 @@ describe('Protected Track Service', function() {
         .end(done)
     });
     
-    it('retuns status code 400 and correct message with date thirty mins before date now', function(done) {
+    it('retuns status code 400 and correct message with date more then thirty mins before date now', function(done) {
       request(app)
         .post('/tracks')
         .set('x-access-token', token)
         .field('title', 'testTrack')
         .field('genre', 'Pop')
         .field('city', 'Belfast')
-        .field('dateUploaded', dateThirtyMinuteBeforeDateNow)
+        .field('dateUploaded', dateThirtyOneMinuteBeforeDateNow)
         .field('trackURL', 'test1')
         .field('uploaderId', userId)
         .field('description', 'testDesc')

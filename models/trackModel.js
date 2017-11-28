@@ -1,6 +1,7 @@
 const mongodb = require('mongodb');
 var mongoose = require('mongoose');
 var validator = require('validator');
+const moment = require('moment');
 var Schema = mongoose.Schema;
 
 //// Custom Validators
@@ -15,14 +16,17 @@ var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are 
 
 var dateUploadedValidator = [ // Only dates after date.now permitted
   function(val) {
-    var date = new Date();
-    date.setHours(date.getHours() - 1);
+    // TODO get this working with moment dates
+    return true
 
-    if (val < date) {
-      return false;
-    } else {
-      return true
-    }
+    // var date = new Date();
+    // date.setHours(date.getHours() - 1);
+    // 
+    // if (val < date) {
+    //   return false;
+    // } else {
+    //   return true
+    // }
   },
   // Customer error text...
   'Enter a valid date'

@@ -1,6 +1,7 @@
 const Track = require('../models/trackModel.js');
 const User = require('../models/userModel.js');
 const _ = require('lodash');
+const moment = require('moment');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const mongodb = require('mongodb');
@@ -143,17 +144,46 @@ exports.getChartOfCity = function(req, res) {
     });
 };
 
-function validatePostTrackForm(payload) {
-  if (!payload.title || typeof payload.title !== 'string') {
-    return {
-      success: false,
-      message: "No track title in request body."
-    }
+function validatePostTrackForm(fields, file) {
+  let title = fields.title;
+  let genre = fields.genre;
+  let city = fields.city;
+  let trackURL = fields.trackURL;
+  let dateUploaded = fields.dateUploaded;
+  let uploaderId = fields.uploaderId;
+  let description = fields.description;
+  let track = file;
+  
+  if (!title || typeof title !== 'string') {
+    return { success: false, message: "No track title in request body." }
+  }
+  if (!genre || typeof genre !== 'string') {
+    return { success: false, message: "No genre in request body." }
+  }
+  if (!city || typeof city !== 'string') {
+    return { success: false, message: "No city in request body." }
+  }
+  if (!trackURL || typeof trackURL !== 'string') {
+    return { success: false, message: "No trackURL in request body." }
+  }
+  if (!dateUploaded || typeof dateUploaded !== 'string') {
+    return { success: false, message: "No dateUploaded in request body." }
+  } else if(!moment(dateUploaded, moment.ISO_8601).isValid()) {
+    return { success: false, message: "Invalid dateUploaded in request body." }
+  } else if(moment(dateUploaded).isBefore(moment(), 'minute')) {
+    return { success: false, message: "Date invalid, it is more then thirty minutes before upload date." }
+  }
+  if (!uploaderId || typeof uploaderId !== 'string') {
+    return { success: false, message: "No uploaderId in request body." }
+  }
+  if (!description || typeof description !== 'string') {
+    return { success: false, message: "No description in request body." }
+  }
+  if (!track || typeof track !== 'object') {
+    return { success: false, message: "No track in request body." }
   }
   
-  return {
-    success: true
-  };
+  return { success: true };
 }
 
 exports.postTrack = (req, res) => {
@@ -161,7 +191,7 @@ exports.postTrack = (req, res) => {
     if(err) {
       return res.status(400).json({ message: 'Error uploading your track' });
     }
-    const validationResult = validatePostTrackForm(req.body);
+    const validationResult = validatePostTrackForm(req.body, req.file);
     if (!validationResult.success) {
       return res.status(400).json({
         message: validationResult.message

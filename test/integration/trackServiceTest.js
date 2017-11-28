@@ -1,11 +1,14 @@
 const request = require('supertest');
 const chai = require('chai');
+const moment = require('moment');
 
 let should = chai.should();
 let assert = chai.assert;
 
 const mongodb = require('mongodb');
 const mongoose = require('mongoose');
+const ObjectID = require('mongodb').ObjectID;
+
 const Track = require('../../models/trackModel.js');
 
 describe('Public Track Service Integration Tests', function() {
@@ -124,11 +127,16 @@ describe('Protected Track Service', function() {
 
   describe('POST /tracks/', function() {
     let testTrackId;
+    let validDate =  moment().toISOString();
+    let invalidDateFormat = Date.now()
+    let dateThirtyMinuteBeforeDateNow = moment().subtract(30, 'minute').toISOString();
+    
     after(function(done) {
       Track.findOne({ _id: testTrackId }, function(err, track){
-        track.remove(function(err){
-           done();
-        });
+        if(track) {
+          track.remove();
+        }
+        done();
       });
     });
     it('retuns status code 200 with valid data', function(done) {
@@ -139,31 +147,143 @@ describe('Protected Track Service', function() {
         .field('genre', 'Pop')
         .field('city', 'Belfast')
         .field('trackURL', 'test1')
-        .field('dateUploaded', Date.now())
+        .field('dateUploaded', validDate)
         .field('uploaderId', userId)
         .field('description', 'testDesc')
         .attach('track', 'test/littleidea.mp3')
         .expect(201)
         .expect(function(res) {
           testTrackId = res.body.trackId;
+          res.body.message.should.equal("File uploaded successfully")
+          assert.equal(ObjectID.isValid(res.body.trackId), true)
         })
         .end(done)
     });
     
-    it('retuns status code 400 and correct message with missing track title', function(done) {
+    it('retuns status code 400 and correct message with no track title in body', function(done) {
       request(app)
         .post('/tracks')
         .set('x-access-token', token)
         .field('genre', 'Pop')
         .field('city', 'Belfast')
         .field('trackURL', 'test1')
-        .field('dateUploaded', Date.now())
+        .field('dateUploaded', validDate)
         .field('uploaderId', '59c1764e79ec4c846007735f')
         .field('description', 'testDesc')
         .attach('track', 'test/littleidea.mp3')
         .expect(400)
         .expect(function(res) {
           res.body.message.should.equal("No track title in request body.");
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with no genre in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', validDate)
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No genre in request body.");
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with no city in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('trackURL', 'test1')
+        .field('dateUploaded', validDate)
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No city in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with no trackURL in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('dateUploaded', validDate)
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No trackURL in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with no date uploaded in body', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('trackURL', 'test1')
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("No dateUploaded in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with invalid date format', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('dateUploaded', invalidDateFormat)
+        .field('trackURL', 'test1')
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Invalid dateUploaded in request body.")
+        })
+        .end(done)
+    });
+    
+    it('retuns status code 400 and correct message with date thirty mins before date now', function(done) {
+      request(app)
+        .post('/tracks')
+        .set('x-access-token', token)
+        .field('title', 'testTrack')
+        .field('genre', 'Pop')
+        .field('city', 'Belfast')
+        .field('dateUploaded', dateThirtyMinuteBeforeDateNow)
+        .field('trackURL', 'test1')
+        .field('uploaderId', userId)
+        .field('description', 'testDesc')
+        .attach('track', 'test/littleidea.mp3')
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.equal("Date invalid, it is more then thirty minutes before upload date.")
         })
         .end(done)
     });

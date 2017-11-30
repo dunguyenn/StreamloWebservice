@@ -119,6 +119,7 @@ describe('Public Authentication Service Integration Tests', function() {
     });
     after(function() {
       User.remove({ email: 'test123@hotmail.com' }, function(err) {});
+      User.remove({ email: 'test1234@hotmail.com' }, function(err) {});
     });
     afterEach(function() {
       app.close();
@@ -143,7 +144,7 @@ describe('Public Authentication Service Integration Tests', function() {
         .post('/auth/signup')
         .send('email=test123@hotmail.com')
         .send('password=password')
-        .send('userURL=userURL123')
+        .send('userURL=userURL1234')
         .send('displayName=testname')
         .send('city=Belfast')
         .expect(409)

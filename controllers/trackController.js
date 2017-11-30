@@ -256,7 +256,7 @@ exports.postTrack = (req, res) => {
           );        
           let message = {
             message: "File uploaded successfully",
-            trackId: track.id
+            trackBinaryId: track.id
           }
           res.status(201).json(message);
         }

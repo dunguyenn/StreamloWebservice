@@ -6,7 +6,6 @@ let should = chai.should();
 let assert = chai.assert;
 
 const mongodb = require('mongodb');
-const mongoose = require('mongoose');
 const ObjectID = require('mongodb').ObjectID;
 
 const Track = require('../../models/trackModel.js');
@@ -24,7 +23,7 @@ describe('Public Track Service Integration Tests', function() {
   describe('GET /tracks/', function() {
     it('returns status code 200 with valid data', function(done) {
       request(app)
-        .get('/tracks?q=november&page=0')
+        .get('/tracks?q=little+idea&page=0')
         .expect(200, done)
     });
     it('returns status code 404 with non-existent track name', function(done) {
@@ -34,7 +33,7 @@ describe('Public Track Service Integration Tests', function() {
     });
     it('returns status code 200 with valid data and no page query string', function(done) {
       request(app)
-        .get('/tracks?q=november')
+        .get('/tracks?q=little+idea')
         .expect(200, done)
     });
   });
@@ -42,7 +41,7 @@ describe('Public Track Service Integration Tests', function() {
   describe('GET /tracks/:trackURL', function() {
     it('returns status code 200 with valid data', function(done) {
       request(app)
-        .get('/tracks/november1')
+        .get('/tracks/testurl1')
         .expect(200)
         .end(done)
     });
@@ -60,7 +59,7 @@ describe('Public Track Service Integration Tests', function() {
   describe('GET /tracks/:trackId/stream', function() {
     it('returns status code 200 with valid trackBinaryId', function(done) {
       request(app)
-        .get('/tracks/59c1793d823ebd9964b3188b/stream')
+        .get('/tracks/5a204f7b026b846d501ad0e5/stream')
         .expect(200)
         .expect(function(res) {
           res.header['content-type'].should.equal("audio/mp3");
@@ -153,9 +152,9 @@ describe('Protected Track Service', function() {
         .attach('track', 'test/littleidea.mp3')
         .expect(201)
         .expect(function(res) {
-          testTrackId = res.body.trackId;
+          testTrackId = res.body.trackBinaryId;
           res.body.message.should.equal("File uploaded successfully")
-          assert.equal(ObjectID.isValid(res.body.trackId), true)
+          assert.equal(ObjectID.isValid(res.body.trackBinaryId), true)
         })
         .end(done)
     });
@@ -360,6 +359,10 @@ describe('Protected Track Service', function() {
         })
         .end(done)
     });
+    
+    it.skip('returns status code 400 and correct message with uploaderId set to non-existant userId', function(done) {
+      done();
+    });
   });
   
   describe('POST /tracks/:trackURL/addComment', function() {
@@ -369,7 +372,7 @@ describe('Protected Track Service', function() {
     });
     it('returns status code 200 with valid data', function(done) {
       request(app)
-        .post('/tracks/november/addComment')
+        .post('/tracks/little+idea/addComment')
         .set('x-access-token', token)
         .send('user=59c1764e79ec4c846007735f')
         .send('date=' + Date.now())
@@ -378,7 +381,7 @@ describe('Protected Track Service', function() {
     });
     it('returns status code 400 with invalid userId', function(done) {
       request(app)
-        .post('/tracks/november/addComment')
+        .post('/tracks/little+idea/addComment')
         .set('x-access-token', token)
         .send('user=invalid')
         .send('date=' + Date.now())

@@ -1,5 +1,7 @@
+const mongodb = require('mongodb');
 var mongoose = require('mongoose');
 var validator = require('validator');
+const moment = require('moment');
 var Schema = mongoose.Schema;
 
 //// Custom Validators
@@ -13,14 +15,13 @@ var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are 
 ];
 
 var dateUploadedValidator = [ // Only dates after date.now permitted
-  function(val) {
-    var date = new Date();
-    date.setHours(date.getHours() - 1);
-
-    if (val < date) {
+  function(trackUploadDateISOString) {
+    let dateNow = moment().subtract(30, 'minute');
+    let trackUploadedDate = moment(trackUploadDateISOString);
+    if(trackUploadedDate.isBefore(dateNow)) {
       return false;
     } else {
-      return true
+      return true;
     }
   },
   // Customer error text...
@@ -88,11 +89,11 @@ var trackSchema = new Schema({
     type: Date,
     validate: dateUploadedValidator
   },
-  trackBinary: {
+  trackBinaryId: {
     type: ObjectId,
     required: true
   },
-  albumArtBinary: {
+  albumArtBinaryId: {
     type: ObjectId
   },
   comments: [{
@@ -100,6 +101,18 @@ var trackSchema = new Schema({
     datePosted: Date,
     body: String
   }]
+});
+
+// On removal of a track, also remove the track binary stored in gridfs
+trackSchema.post('remove', function(doc) {
+  let trackBinaryGridFSId = doc.trackBinaryId
+  let db = mongoose.connection.db;
+  var bucket = new mongodb.GridFSBucket(db, {
+    bucketName: 'fs'
+  });
+  bucket.delete(trackBinaryGridFSId, (err) => {
+    return;
+  });
 });
 
 module.exports = mongoose.model('Track', trackSchema);

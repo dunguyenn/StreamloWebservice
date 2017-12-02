@@ -1,50 +1,73 @@
 var validator = require('validator');
 var passport = require('passport');
 
-/**
- * Validate the sign up form
-*/
+// Initial validation check before querying database
 function validateSignupForm(payload) {
-  const errors = {};
-  let isFormValid = true;
-  let message = '';
-
-  if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
-    isFormValid = false;
-    errors.email = 'Please provide a valid email address.';
+  if (!payload.email || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
+    return {
+      success: false,
+      message: "Please provide a valid email address."
+    }
+  }
+  
+  if (!payload.password || typeof payload.password !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a valid password."
+    }
+  } else if (payload.password.trim().length < 8) {
+    return {
+      success: false,
+      message: "Password must have at least 8 characters."
+    }
+  } else if (payload.password.trim().length > 50) {
+    return {
+      success: false,
+      message: "Password can have a maximum of 50 characters."
+    }
   }
 
-  if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {
-    isFormValid = false;
-    errors.password = 'Password must have at least 8 characters.';
+  if (!payload.userURL || typeof payload.userURL !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a userURL."
+    }
+  } else if (payload.userURL.trim().length > 20) {
+    return {
+      success: false,
+      message: "UserURL can have a maximum of 20 characters"
+    }
   }
-
-  if (!payload || typeof payload.userURL !== 'string') {
-    isFormValid = false;
-    errors.userURL = 'Please provide a userURL.';
+  
+  if (!payload.displayName || typeof payload.displayName !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a display name."
+    }
+  } else if (payload.displayName.trim().length > 20) {
+    return {
+      success: false,
+      message: "Display name can have a maximum of 20 characters"
+    }
   }
-
-  if (!isFormValid) {
-    message = 'Check the form for errors.';
+  
+  if (!payload.city || typeof payload.city !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a city name."
+    }
   }
 
   return {
-    success: isFormValid,
-    message,
-    errors
+    success: true
   };
 }
 
 exports.createUserAccount = function(req, res) {
-  // Run request body through server side validation
   const validationResult = validateSignupForm(req.body);
-
-  // Check if request body passed server side validation
   if (!validationResult.success) {
     return res.status(400).json({
-      success: false,
-      message: validationResult.message,
-      errors: validationResult.errors
+      message: validationResult.message
     });
   }
 
@@ -53,67 +76,53 @@ exports.createUserAccount = function(req, res) {
   // This gives the callback access to the req and res objects through closure.
   return passport.authenticate('local-signup', (err, user) => {
     if (err) {
-      if (err.name === 'MongoError' && err.code === 11000) {
-        // the Mongo code is for a duplicate key error
-        // the 409 HTTP status code is for conflict error
-        return res.status(409).json({
-          success: false,
-          message: 'Check the form for errors.',
-          errors: {
-            email: 'This email or userURL is already taken.' // TODO more specific error message for duplicate email/userURL
-          }
-        });
-      }
-
-      return res.status(400).json({
-        success: false,
-        message: 'Could not process the form.'
+      return res.status(err.httpStatusCode).json({
+        message: err.message
       });
     }
-
+    
     return res.status(200).json({
-      success: true,
       message: 'You have successfully signed up! Now you should be able to log in.'
     });
   })(req, res);
 };
 
+// Initial validation check before querying database
 function validateLoginForm(payload) {
-  const errors = {};
-  let isFormValid = true;
-  let message = '';
-
-  if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
-    isFormValid = false;
-    errors.email = 'Please provide a valid email address.';
+  if (typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
+    return {
+      success: false,
+      message: "Please provide a valid email address."
+    }
   }
 
-  if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {
-    isFormValid = false;
-    errors.password = 'Password must have at least 8 characters.';
-  }
-
-  if (!isFormValid) {
-    message = 'Check the form for errors.';
+  if (!payload.password || typeof payload.password !== 'string') {
+    return {
+      success: false,
+      message: "Please provide a valid password."
+    }
+  } else if (payload.password.trim().length < 8) {
+    return {
+      success: false,
+      message: "Password must have at least 8 characters."
+    }
+  } else if (payload.password.trim().length > 50) {
+    return {
+      success: false,
+      message: "Password can have a maximum of 50 characters."
+    }
   }
 
   return {
-    success: isFormValid,
-    message,
-    errors
+    success: true
   };
 }
 
 exports.login = function(req, res) {
-  // Run request body through server side validation
   const validationResult = validateLoginForm(req.body);
-
-  // Check if request body passed server side validation
   if (!validationResult.success) {
     return res.status(400).json({
-      success: false,
-      message: validationResult.message,
-      errors: validationResult.errors
+      message: validationResult.message
     });
   }
   
@@ -122,9 +131,8 @@ exports.login = function(req, res) {
   // This gives the callback access to the req and res objects through closure.
   return passport.authenticate('local-login', (err, user, JWTToken) => {
     if (err) {
-      return res.status(400).json({
-        success: false,
-        message: err.name
+      return res.status(err.httpStatusCode).json({
+        message: err.message
       });
     }
 
@@ -141,7 +149,6 @@ exports.login = function(req, res) {
     };
 
     return res.status(200).json({
-      success: true,
       message: 'You have successfully logged in!',
       profile: userProfile,
       token: JWTToken

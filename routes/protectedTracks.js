@@ -1,7 +1,5 @@
 var express = require('express');
 var protectedTrackRoutes = express.Router();
-var multer = require('multer');
-var upload = multer({ dest: './uploads/' });
 var trackController = require('../controllers/trackController.js');
 var jwtUtils = require('../utils/jwt');
 
@@ -9,7 +7,7 @@ var jwtUtils = require('../utils/jwt');
 protectedTrackRoutes.use(jwtUtils.verifyToken);
 
 // POST track to the system
-protectedTrackRoutes.post('/', upload.single('track'), function(req, res) {
+protectedTrackRoutes.post('/', function(req, res) {
   return trackController.postTrack(req, res);
 });
 

@@ -1,29 +1,46 @@
-var Track = require('../models/trackModel.js');
-var User = require('../models/userModel.js');
-var mongoose = require('mongoose');
-var _ = require('lodash');
-var fs = require('fs');
-var grid = require('gridfs-stream');
-var conn = mongoose.connection;
-grid.mongo = mongoose.mongo;
+const Track = require('../models/trackModel.js');
+const User = require('../models/userModel.js');
+const _ = require('lodash');
+const moment = require('moment');
+const fs = require('fs');
+const mongoose = require('mongoose');
+const mongodb = require('mongodb');
+const ObjectID = require('mongodb').ObjectID;
+const { Readable } = require('stream');
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 1, parts: 8 }});
 
-// TODO support seeking requests from clientside
 exports.getTrackStreamByGridFSId = function(req, res) {
-  var trackId = req.params.trackId;
-  var gfs = grid(conn.db);
-
-  gfs.findOne({
-    _id: trackId
-  }, function(err, file) {
-    if (err) {
-      res.json(err);
-    } else {
-      var mime = 'audio/mp3';
-      res.set('Content-Type', mime);
-      var read_stream = gfs.createReadStream(file);
-      read_stream.pipe(res);
-    }
-  });
+  let trackId;
+  if(!ObjectID.isValid(req.params.trackId)) {
+    res.status(400).json({ message: "Invalid trackID" });
+  } else {
+    trackId = new ObjectID(req.params.trackId);
+    
+    let db = mongoose.connection.db;
+    var bucket = new mongodb.GridFSBucket(db, {
+      bucketName: 'fs'
+    });
+    
+    res.set('content-type', 'audio/mp3');
+    res.set('accept-ranges', 'bytes');
+    
+    // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
+    var downloadStream = bucket.openDownloadStream(trackId);
+    
+    downloadStream.on('data', (chunk) => {
+      res.write(chunk);
+    });
+    
+    downloadStream.on('error', () => {
+      res.sendStatus(404);
+    });
+    
+    downloadStream.on('end', () => {
+      res.end();
+    });
+  }
 };
 
 exports.getTracksByTitle = (req, res) => {
@@ -45,7 +62,7 @@ exports.getTracksByTitle = (req, res) => {
       if (err) {
         res.sendStatus(500);
       } else if (_.isEmpty(results)) {
-        res.sendStatus(204)
+        res.sendStatus(404)
       } else {
         response.tracks = results;
         getNumberOfTracksByTitle(trackTitle, (err, results) => {
@@ -100,7 +117,9 @@ exports.getTrackByURL = function(req, res) {
     if (err)
       res.sendStatus(500);
     else if (_.isEmpty(results)) {
-      res.sendStatus(204)
+      res.status(404).json({
+        message: "No track found with this trackURL"
+      });
     } else {
       res.json(results);
     }
@@ -125,109 +144,123 @@ exports.getChartOfCity = function(req, res) {
     });
 };
 
-exports.postTrack = function(req, res) {
-  var uploadedFileId;
+function validatePostTrackForm(fields, file) {
+  let title = fields.title;
+  let genre = fields.genre;
+  let city = fields.city;
+  let trackURL = fields.trackURL;
+  let dateUploaded = fields.dateUploaded;
+  let uploaderId = fields.uploaderId;
+  let description = fields.description;
+  let track = file;
+  
+  if (!title || typeof title !== 'string') {
+    return { success: false, message: "No track title in request body." }
+  }
+  if (!genre || typeof genre !== 'string') {
+    return { success: false, message: "No genre in request body." }
+  }
+  if (!city || typeof city !== 'string') {
+    return { success: false, message: "No city in request body." }
+  }
+  if (!trackURL || typeof trackURL !== 'string') {
+    return { success: false, message: "No trackURL in request body." }
+  }
+  if (!dateUploaded || typeof dateUploaded !== 'string') {
+    return { success: false, message: "No dateUploaded in request body." }
+  } else if(!moment(dateUploaded, moment.ISO_8601).isValid()) {
+    return { success: false, message: "Invalid dateUploaded in request body." }
+  } else if(moment(dateUploaded).isBefore(moment(), 'minute')) {
+    return { success: false, message: "Date invalid, it is more then thirty minutes before upload date." }
+  }
+  if (!uploaderId || typeof uploaderId !== 'string') {
+    return { success: false, message: "No uploaderId in request body." }
+  }
+  if (!description || typeof description !== 'string') {
+    return { success: false, message: "No description in request body." }
+  }
+  if (!track || typeof track !== 'object') {
+    return { success: false, message: "No track in request body." }
+  }
+  
+  return { success: true };
+}
 
-  var fileName = req.body.title;
-  var uploderId = req.body.uploaderId;
+exports.postTrack = (req, res) => {
+  upload.single('track')(req, res, (err) => {
+    if(err) {
+      return res.status(400).json({ message: 'Error uploading your track' });
+    }
+    const validationResult = validatePostTrackForm(req.body, req.file);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        message: validationResult.message
+      });
+    }
+    
+    let trackTitle = req.body.title;
+    let uploderId = req.body.uploaderId;
 
-  var filePath = req.file.path;
-  var filetype = req.file.mimetype;
-
-  var gfs = grid(conn.db);
-
-  // Streaming to gridfs
-  // Filename to store in mongodb
-  var writestream = gfs.createWriteStream({
-    filename: fileName,
-    content_type: 'audio/mp3'
-  });
-  fs.createReadStream(filePath).pipe(writestream);
-
-  writestream.on('close', function(file) {
-    uploadedFileId = file._id;
-
-    var entry = new Track({
-      title: req.body.title,
-      genre: req.body.genre,
-      city: req.body.city,
-      trackURL: req.body.trackURL,
-      dateUploaded: req.body.dateUploaded,
-      uploaderId: req.body.uploaderId,
-      description: req.body.description,
-      trackBinary: uploadedFileId
+    // Covert buffer to Readable Stream
+    const readableTrackStream = new Readable();
+    readableTrackStream.push(req.file.buffer);
+    readableTrackStream.push(null);
+    
+    let db = mongoose.connection.db;
+    let bucket = new mongodb.GridFSBucket(db, {
+      bucketName: 'fs'
     });
 
-    entry.save(function(err) { // Attempt to save track
-      if (err) { // In event of failed track save remove gridfs file
-        gfs.remove({
-          _id: uploadedFileId
-        }, function(gfserr) {
-          if (gfserr) {
-            console.log("error removing gridfs file");
-          }
-        });
-        console.log(err);
-        fs.unlink(filePath);
-        res.sendStatus(500);
-      } else { // In event of sucessful track save add uploaded gridfs trackId to uploaders uploaded files object
-        var query = User.findByIdAndUpdate(
-          uploderId, {
-            $push: {
-              "uploadedTracks": {
-                uploadedTrackId: uploadedFileId
+    let uploadStream = bucket.openUploadStream(trackTitle, { contentType: 'audio/mp3' });
+    let trackGridFSId = uploadStream.id;
+    readableTrackStream.pipe(uploadStream);
+
+    uploadStream.on('error', () => {
+      res.status(500).json({ message: "Error uploading file" });
+    });
+
+    uploadStream.on('finish', () => {
+      var track = new Track({
+        title: req.body.title,
+        genre: req.body.genre,
+        city: req.body.city,
+        trackURL: req.body.trackURL,
+        dateUploaded: req.body.dateUploaded,
+        uploaderId: req.body.uploaderId,
+        description: req.body.description,
+        trackBinaryId: trackGridFSId
+      });
+      
+      track.save(function(err, track) { // Attempt to save track
+        if (err) { // In event of failed track save remove gridfs file
+          bucket.delete(trackGridFSId);
+          res.status(500).json({ message: "Error uploading file" });
+        } else { // If track model saves, update uploaders user model
+          User.findByIdAndUpdate(
+            uploderId, {
+              $push: {
+                "uploadedTracks": {
+                  uploadedTrackId: trackGridFSId
+                }
+              },
+              $inc: {
+                "numberOfTracksUploaded": 1
+              }
+            }, { safe: true },
+            function(err) {
+              if (err) { // If uploaders user model fails to update, remove uploaded track from gridfs
+                bucket.delete(trackGridFSId);
+                res.status(500).json({ message: "Error uploading file" });
               }
             }
-          }, {
-            safe: true,
-            upsert: true,
-            new: true
-          },
-          function(gfserr, model) {
-            if (gfserr) { // In event of failed query remove gridfs file
-              gfs.remove({
-                _id: uploadedFileId
-              }, function(gfserr) {
-                if (gfserr) {
-                  console.log("error removing gridfs file");
-                }
-                console.log('Removed gridfs file after unsuccessful db update');
-              });
-              fs.unlink(filePath);
-              res.sendStatus(500);
-            }
+          );        
+          let message = {
+            message: "File uploaded successfully",
+            trackId: track.id
           }
-        );
-
-        // Also increment number of uploaded tracks on uploder
-        query = User.findByIdAndUpdate(
-          uploderId, {
-            $inc: {
-              "numberOfTracksUploaded": 1
-            }
-          }, {
-            safe: true,
-            upsert: true,
-            new: true
-          },
-          function(gfserr, model) {
-            if (gfserr) { // In event of failed query remove gridfs file
-              gfs.remove({
-                _id: uploadedFileId
-              }, function(gfserr) {
-                if (gfserr) {
-                  console.log("error removing gridfs file");
-                }
-                console.log('Removed gridfs file after unsuccessful db update');
-              });
-              fs.unlink(filePath);
-              res.sendStatus(500);
-            }
-          }
-        );
-        fs.unlink(filePath);
-        res.sendStatus(200);
-      }
+          res.status(201).json(message);
+        }
+      });
     });
   });
 };

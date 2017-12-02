@@ -104,7 +104,7 @@ var trackSchema = new Schema({
 });
 
 // On removal of a track, also remove the track binary stored in gridfs
-trackSchema.post('remove', function(doc) {
+trackSchema.post('findOneAndRemove', function(doc) {
   let trackBinaryGridFSId = doc.trackBinaryId
   let db = mongoose.connection.db;
   var bucket = new mongodb.GridFSBucket(db, {

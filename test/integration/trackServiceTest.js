@@ -43,7 +43,7 @@ describe('Track Service Integration Tests', function() {
     // remove test user after track service tests finish
     User.find({
       email: "test@hotmail.com"
-    }).remove((err) => {
+    }).remove(() => {
       return done();
     });
   });
@@ -154,9 +154,28 @@ describe('Track Service Integration Tests', function() {
       });
     });
     
-    describe.skip('GET /tracks/uploaderId/:uploaderId', function() {
-      it('does something', function(done) {
-        done();
+    describe('GET /tracks/uploaderId/:uploaderId', function() {
+      it('returns status code 200 with valid uploaderId', function(done) {
+        request(app)
+          .get('/tracks/uploaderId/' + testUser._id)
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body);
+            assert.lengthOf(res.body, 1);
+          })
+          .end(done)
+      });
+      it('returns status code 400 with invalid uploaderId', function(done) {
+        request(app)
+          .get('/tracks/uploaderId/123')
+          .expect(400)
+          .end(done)
+      });
+      it('returns status code 404 when no user matches uploaderId', function(done) {
+        request(app)
+          .get('/tracks/uploaderId/5a204aad5219defcba519575')
+          .expect(404)
+          .end(done)
       });
     });
     

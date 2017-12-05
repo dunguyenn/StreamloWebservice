@@ -92,19 +92,26 @@ let getNumberOfTracksByTitle = (trackTitle, cb) => {
 };
 
 exports.getTracksByUploaderId = function(req, res) {
-  var reqUploaderId = req.params.uploaderId;
+  if(!ObjectID.isValid(req.params.uploaderId)) {
+    return res.status(400).json({ message: "Invalid trackID" });
+  } else {
+    var reqUploaderId = req.params.uploaderId;
 
-  var query = Track.find({
-    uploaderId: reqUploaderId
-  });
+    var query = Track.find({
+      uploaderId: reqUploaderId
+    });
 
-  query.limit(5)
-    .exec(function(err, results) {
-      if (err)
-        res.sendStatus(500);
-      else
-        res.json(results);
-    })
+    query.limit(5)
+      .exec(function(err, results) {
+        if (err) {
+          res.sendStatus(500);
+        } else if (_.isEmpty(results)) {
+          res.sendStatus(404);
+        } else {
+          res.json(results);
+        }
+      });
+    }
 };
 
 exports.getTrackByURL = function(req, res) {

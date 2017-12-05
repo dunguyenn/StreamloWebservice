@@ -7,38 +7,35 @@ const assert = chai.assert;
 const User = require('../../models/userModel.js');
 
 describe('Authentication Service Integration Tests', function() {
-  describe('Public Authentication Endpoints', function() {
-    var app;
-    before(() => {
-      app = require('../../app');
-    });
-    after(() => {
-      app.close();
+  var app;
+  
+  before((done) => {
+    app = require('../../app');
+    // create test user for use with signup endpoint tests
+    const testUserData = new User({
+      email: "test@hotmail.com",
+      password: "password",
+      userURL: "testurl",
+      displayName: "testDisplayName",
+      city: "Belfast"
     });
     
-    describe('POST /auth/login', function() {    
-      before(function(done) {
-        const testUser = new User({
-          email: "test@hotmail.com",
-          password: "password",
-          userURL: "testurl",
-          displayName: "testDisplayName",
-          city: "Belfast"
-        });
-        
-        User(testUser).save((err) => {
-          return done();
-        });
-      });
-
-      after(function(done) {
-        User.find({
-          email: "test@hotmail.com"
-        }).remove((err) => {
-          done();
-        });
-      });
-      
+    User(testUserData).save((err, user) => {
+      return done();
+    });
+  });
+  after((done) => {
+    app.close();
+    // remove test user after auth service tests finish
+    User.find({
+      email: "test@hotmail.com"
+    }).remove(() => {
+      return done();
+    });
+  });
+  
+  describe('Public Authentication Endpoints', function() {
+    describe('POST /auth/login', function() {      
       it('returns status code 200 with valid data', function(done) {
         request(app)
           .post('/auth/login')
@@ -123,7 +120,7 @@ describe('Authentication Service Integration Tests', function() {
           .end(done)
       });
       
-      it('returns status code 400 with password over 50characters', function(done) {
+      it('returns status code 400 with password over 50 characters', function(done) {
         request(app)
           .post('/auth/login')
           .send('email=test@hotmail.com')
@@ -167,10 +164,10 @@ describe('Authentication Service Integration Tests', function() {
           .end(done)
       });
       
-      it('returns status code 409 with confilicting email', function(done) {
+      it('returns status code 409 with conflicting email', function(done) {
         request(app)
           .post('/auth/signup')
-          .send('email=test123@hotmail.com')
+          .send('email=test@hotmail.com')
           .send('password=password')
           .send('userURL=userURL1234')
           .send('displayName=testname')
@@ -271,12 +268,12 @@ describe('Authentication Service Integration Tests', function() {
           .end(done)
       });
       
-      it('returns status code 409 with confilicting userURL', function(done) {
+      it('returns status code 409 with conflicting userURL', function(done) {
         request(app)
           .post('/auth/signup')
           .send('email=test1234@hotmail.com')
           .send('password=password')
-          .send('userURL=userURL123')
+          .send('userURL=testurl')
           .send('displayName=testname')
           .send('city=Belfast')
           .expect(409)

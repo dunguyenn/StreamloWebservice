@@ -1,8 +1,10 @@
 const mongodb = require('mongodb');
 var mongoose = require('mongoose');
 var validator = require('validator');
+const _ = require('lodash');
 const moment = require('moment');
 var Schema = mongoose.Schema;
+const User = require('../models/userModel.js');
 
 //// Custom Validators
 var trackURLValidator = [ // Only numbers, letters, underscores and hyphens are permitted
@@ -102,6 +104,25 @@ var trackSchema = new Schema({
     body: String
   }]
 });
+
+// Before saving track check if uploaderID provided has a user on the database associated with it 
+trackSchema.pre('save', function (next) {
+  let uploaderId = this.uploaderId
+
+  var query = User.find({
+    _id: uploaderId
+  }, function(err, doc) {
+    if(err) {
+      next(err);
+    } else if (_.isEmpty(doc)) {
+      let error = new Error('No User associated with uploaderID')
+      next(error);
+    } else {
+      next();
+    }
+  });
+});
+
 
 // On removal of a track, also remove the track binary stored in gridfs
 trackSchema.post('findOneAndRemove', function(doc) {

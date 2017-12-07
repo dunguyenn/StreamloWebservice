@@ -241,7 +241,13 @@ exports.postTrack = (req, res) => {
       track.save(function(err, track) { // Attempt to save track
         if (err) { // In event of failed track save remove gridfs file
           bucket.delete(trackGridFSId);
-          res.status(500).json({ message: "Error uploading file" });
+          switch(err.message) {
+            case "No User associated with uploaderID":
+              res.status(400).json({ message: "No User account associated with uploaderID" });
+              break;
+            default:
+              res.status(500).json({ message: "Error uploading file" });
+          }
         } else { // If track model saves, update uploaders user model
           User.findByIdAndUpdate(
             uploderId, {

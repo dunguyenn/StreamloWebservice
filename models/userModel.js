@@ -125,7 +125,7 @@ userSchema.pre('save', function saveHook(next) {
 });
 
 userSchema.post('findOneAndRemove', function(doc) {
-  // TODO On removal of a user, also remove of the users tracks
+  // TODO On removal of a user, also remove of the users uploaded tracks
 });
 
 module.exports = mongoose.model('user', userSchema);

@@ -179,9 +179,26 @@ describe('Track Service Integration Tests', function() {
       });
     });
     
-    describe.skip('GET /tracks/:city/chart', function() {
-      it('does something', function(done) {
-        done();
+    describe('GET /tracks/:city/chart', function() {
+      it('returns status code 200 and a chart with valid city name', function(done) {
+        request(app)
+          .get('/tracks/Belfast/chart')
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body);
+            assert.lengthOf(res.body, 1);
+          })
+          .end(done)
+      });
+      it('returns status code 200 and an empty array with city name that has no tracks associated with it', function(done) {
+        request(app)
+          .get('/tracks/NonExistentCity/chart')
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body);
+            assert.lengthOf(res.body, 0);
+          })
+          .end(done)
       });
     });
   });
@@ -431,8 +448,23 @@ describe('Track Service Integration Tests', function() {
           .end(done)
       });
       
-      it.skip('returns status code 400 and correct message with uploaderId set to non-existant userId', function(done) {
-        done();
+      it('returns status code 400 and correct message with uploaderId set to userId that is not associated with any user account', function(done) {
+        request(app)
+          .post('/tracks')
+          .set('x-access-token', testUserToken)
+          .field('title', 'testTrack')
+          .field('genre', 'Pop')
+          .field('city', 'Belfast')
+          .field('trackURL', 'test1')
+          .field('dateUploaded', validDate)
+          .field('uploaderId', '5a22de9e05781964731340cc')
+          .field('description', 'testDesc')
+          .attach('track', 'test/littleidea.mp3')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("No User account associated with uploaderID")
+          })
+          .end(done)
       });
     });
     

@@ -60,7 +60,7 @@ describe('Track Service Integration Tests', function() {
       
       let db = mongoose.connection.db;
       let bucket = new mongodb.GridFSBucket(db, {
-        bucketName: 'fs'
+        bucketName: 'trackBinaryFiles'
       });
       let uploadStream = bucket.openUploadStream("little idea", { contentType: 'audio/mp3' });
       trackGridFSId = uploadStream.id;
@@ -203,15 +203,7 @@ describe('Track Service Integration Tests', function() {
     });
   });
 
-  describe('Protected Track Endpoints', function() {
-    after(function(done) {
-      User.find({
-        email: "test@hotmail.com"
-      }).remove((err) => {
-        done();
-      });
-    });
-    
+  describe('Protected Track Endpoints', function() {    
     describe('POST /tracks/', function() {
       let testTrackId;
       let validDate =  moment().toISOString();
@@ -219,10 +211,7 @@ describe('Track Service Integration Tests', function() {
       let dateThirtyOneMinuteBeforeDateNow = moment().subtract(31, 'minute').toISOString();
       
       after(function(done) {
-        Track.findOne({ _id: testTrackId }, function(err, track){
-          if(track) {
-            track.remove();
-          }
+        Track.findOneAndRemove({ _id: testTrackId }, function(err) {
           done();
         });
       });

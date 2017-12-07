@@ -20,7 +20,7 @@ exports.getTrackStreamByGridFSId = function(req, res) {
     
     let db = mongoose.connection.db;
     var bucket = new mongodb.GridFSBucket(db, {
-      bucketName: 'fs'
+      bucketName: 'trackBinaryFiles'
     });
     
     res.set('content-type', 'audio/mp3');
@@ -215,7 +215,7 @@ exports.postTrack = (req, res) => {
     
     let db = mongoose.connection.db;
     let bucket = new mongodb.GridFSBucket(db, {
-      bucketName: 'fs'
+      bucketName: 'trackBinaryFiles'
     });
 
     let uploadStream = bucket.openUploadStream(trackTitle, { contentType: 'audio/mp3' });

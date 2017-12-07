@@ -129,7 +129,7 @@ trackSchema.post('findOneAndRemove', function(doc) {
   let trackBinaryGridFSId = doc.trackBinaryId
   let db = mongoose.connection.db;
   var bucket = new mongodb.GridFSBucket(db, {
-    bucketName: 'fs'
+    bucketName: 'trackBinaryFiles'
   });
   bucket.delete(trackBinaryGridFSId, (err) => {
     return;

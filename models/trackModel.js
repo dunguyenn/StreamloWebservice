@@ -106,7 +106,7 @@ var trackSchema = new Schema({
 });
 
 // Before saving track check if uploaderID provided has a user on the database associated with it 
-trackSchema.pre('save', function (next) {
+trackSchema.pre('save', function(next) {
   let uploaderId = this.uploaderId
 
   var query = User.find({
@@ -122,7 +122,6 @@ trackSchema.pre('save', function (next) {
     }
   });
 });
-
 
 // On removal of a track, also remove the track binary stored in gridfs
 trackSchema.post('findOneAndRemove', function(doc) {

@@ -19,6 +19,8 @@ describe('Track Service Integration Tests', function() {
   var app;
   var testUser;
   var testUserToken;
+  var testTrack;
+  var trackGridFSId;
   
   before(function(done) {
     app = require('../../app');
@@ -34,25 +36,7 @@ describe('Track Service Integration Tests', function() {
     User(testUserData).save((err, user) => {
       testUser = user;
       testUserToken = utilsJWT.generateToken(user);
-      return done();
-    });
-  });
-  
-  after(function(done) {
-    app.close();
-    // remove test user after track service tests finish
-    User.find({
-      email: "test@hotmail.com"
-    }).remove(() => {
-      return done();
-    });
-  });
-  
-  describe('Public Track Endpoints', function() {
-    var testTrakURL = "testurl"
-    var trackGridFSId;
-      
-    before(function(done) {
+    }).then(() => {
       // Add test track to database in order to test against.
       const readableTrackStream = new Readable();
       readableTrackStream.push(fs.readFileSync('test/littleidea.mp3'));
@@ -67,11 +51,11 @@ describe('Track Service Integration Tests', function() {
       readableTrackStream.pipe(uploadStream);
       
       uploadStream.on('finish', () => {
-        var testTrack = new Track({
+        testTrack = new Track({
           title: "little idea",
           genre: "Pop",
           city: "Belfast",
-          trackURL: testTrakURL,
+          trackURL: "testurl",
           dateUploaded: moment().add(30, 'minute'),
           uploaderId: testUser._id,
           description: "testDesc",
@@ -83,13 +67,23 @@ describe('Track Service Integration Tests', function() {
         });
       });
     });
-
-    after(function(done) {
-      Track.findOneAndRemove({ title: "little idea" }, function(err) {
-        done();
+  });
+  
+  after(function(done) {
+    app.close();
+    // remove test user after track service tests finish
+    User.findOneAndRemove({
+        email: "test@hotmail.com"
+      })
+      .then(() => {
+        // remove test track after track service tests finish
+        Track.findOneAndRemove({ title: "little idea" }, function(err) {
+          return done();
+        });
       });
-    });
-    
+  });
+  
+  describe('Public Track Endpoints', function() {
     describe('GET /tracks/', function() {
       it('returns status code 200 with valid data', function(done) {
         request(app)
@@ -111,7 +105,7 @@ describe('Track Service Integration Tests', function() {
     describe('GET /tracks/:trackURL', function() {
       it('returns status code 200 with valid data', function(done) {
         request(app)
-          .get('/tracks/' + testTrakURL)
+          .get('/tracks/' + testTrack.trackURL)
           .expect(200)
           .end(done)
       });
@@ -203,18 +197,20 @@ describe('Track Service Integration Tests', function() {
     });
   });
 
-  describe('Protected Track Endpoints', function() {    
+  describe('Protected Track Endpoints', function() {
+    let testTrackId;
+
+    after(function(done) {
+      Track.findOneAndRemove({ _id: testTrackId }, function() {
+        done();
+      });
+    });
+    
     describe('POST /tracks/', function() {
-      let testTrackId;
       let validDate =  moment().toISOString();
       let invalidDateFormat = Date.now()
       let dateThirtyOneMinuteBeforeDateNow = moment().subtract(31, 'minute').toISOString();
-      
-      after(function(done) {
-        Track.findOneAndRemove({ _id: testTrackId }, function(err) {
-          done();
-        });
-      });
+
       it('retuns status code 200 with valid data', function(done) {
         request(app)
           .post('/tracks')
@@ -458,24 +454,50 @@ describe('Track Service Integration Tests', function() {
     });
     
     describe('POST /tracks/:trackURL/addComment', function() {
-      after(function(done) {
-        // TODO add removing test comment after this test suite has finished
-        done()
-      });
       it('returns status code 200 with valid data', function(done) {
         request(app)
-          .post('/tracks/little+idea/addComment')
+          .post('/tracks/test1/addComment')
           .set('x-access-token', testUserToken)
-          .send('user=59c1764e79ec4c846007735f')
+          .send('user=' + testUser._id)
           .send('date=' + Date.now())
           .send('body=testComment')
-          .expect(200, done)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("Comment successfully added")
+          })
+          .end(done)
       });
-      it('returns status code 400 with invalid userId', function(done) {
+      it('returns status code 400 with invalid userId format', function(done) {
         request(app)
-          .post('/tracks/little+idea/addComment')
+          .post('/tracks/test1/addComment')
           .set('x-access-token', testUserToken)
           .send('user=invalid')
+          .send('date=' + Date.now())
+          .send('body=testComment')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid userID format")
+          })
+          .end(done)
+      });
+      it('returns status code 400 with userId that is not associated with a user in database', function(done) {
+        request(app)
+          .post('/tracks/test1/addComment')
+          .set('x-access-token', testUserToken)
+          .send('user=5a29a767dbfefada3041b944')
+          .send('date=' + Date.now())
+          .send('body=testComment')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("No user associated with the commenter")
+          })
+          .end(done)
+      });
+      it('returns status code 400 when trackURL sent has no associated track in database', function(done) {
+        request(app)
+          .post('/tracks/nonExistentTrackURL/addComment')
+          .set('x-access-token', testUserToken)
+          .send('user=' + testUser._id)
           .send('date=' + Date.now())
           .send('body=testComment')
           .expect(400, done)

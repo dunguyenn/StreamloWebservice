@@ -309,31 +309,31 @@ exports.deleteTrackByTrackURL = function(req, res) {
   });
 };
 
-// Add comment ot track by track URL
 exports.addCommentToTrackByTrackURL = function(req, res) {
-  var com = {
-    user: req.body.user,
-    datePosted: req.body.date,
-    body: req.body.body
+  let commenterUserId = req.body.user;
+  if(!ObjectID.isValid(commenterUserId)) {
+    res.status(400).json({ message: "Invalid userID format" });
+  } else {
+    var com = {
+      user: commenterUserId,
+      datePosted: req.body.date,
+      body: req.body.body
+    }
+    var trackURL = req.params.trackURL;
+    
+    Track.findOne({ trackURL: trackURL }, function(err, track) {
+      if (err) return res.sendStatus(400);
+      if(_.isEmpty(track)) return res.sendStatus(400);
+      let trackId = track._id;
+      User.findById(commenterUserId, (err, user) => {
+        if (!user) return res.status(400).json({ message: "No user associated with the commenter" });
+        Track.update({ _id: trackId }, {
+          $push: { "comments": com }
+        }, function(err) {
+          if (err) return res.sendStatus(400);
+          else return res.status(200).json({ message: "Comment successfully added" });
+        });
+      })
+    })
   }
-  var trackURL = req.params.trackURL;
-
-  var query = Track.findOneAndUpdate({
-      trackURL: trackURL
-    }, {
-      $push: {
-        "comments": com
-      }
-    }, {
-      safe: true,
-      upsert: false,
-      new: false
-    },
-    function(err) {
-      if (err) {
-        res.sendStatus(400);
-      } else {
-        res.sendStatus(200);
-      }
-    });
 };

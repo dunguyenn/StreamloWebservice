@@ -19,6 +19,7 @@ describe('Track Service Integration Tests', function() {
   var app;
   var testUser;
   var testUserToken;
+  var testTrackId;
   var testTrack;
   var trackGridFSId;
   
@@ -62,7 +63,8 @@ describe('Track Service Integration Tests', function() {
           trackBinaryId: trackGridFSId
         });
 
-        Track(testTrack).save((err) => {
+        Track(testTrack).save((err, track) => {
+          testTrackId = track._id;
           return done();
         });
       });
@@ -77,7 +79,7 @@ describe('Track Service Integration Tests', function() {
       })
       .then(() => {
         // remove test track after track service tests finish
-        Track.findOneAndRemove({ title: "little idea" }, function(err) {
+        Track.findOneAndRemove({ _id: testTrackId }, function(err) {
           return done();
         });
       });
@@ -198,10 +200,10 @@ describe('Track Service Integration Tests', function() {
   });
 
   describe('Protected Track Endpoints', function() {
-    let testTrackId;
+    let uploadedTestTrackId;
 
     after(function(done) {
-      Track.findOneAndRemove({ _id: testTrackId }, function() {
+      Track.findOneAndRemove({ _id: uploadedTestTrackId }, function() {
         done();
       });
     });
@@ -225,7 +227,7 @@ describe('Track Service Integration Tests', function() {
           .attach('track', 'test/littleidea.mp3')
           .expect(201)
           .expect(function(res) {
-            testTrackId = res.body.trackBinaryId;
+            uploadedTestTrackId = res.body.trackBinaryId;
             res.body.message.should.equal("File uploaded successfully")
             assert.equal(ObjectID.isValid(res.body.trackBinaryId), true)
           })
@@ -453,10 +455,10 @@ describe('Track Service Integration Tests', function() {
       });
     });
     
-    describe('POST /tracks/:trackURL/addComment', function() {
+    describe('POST /tracks/:trackURL/comments', function() {
       it('returns status code 200 with valid data', function(done) {
         request(app)
-          .post('/tracks/test1/addComment')
+          .post('/tracks/test1/comments')
           .set('x-access-token', testUserToken)
           .send('user=' + testUser._id)
           .send('date=' + Date.now())
@@ -469,7 +471,7 @@ describe('Track Service Integration Tests', function() {
       });
       it('returns status code 400 with invalid userId format', function(done) {
         request(app)
-          .post('/tracks/test1/addComment')
+          .post('/tracks/test1/comments')
           .set('x-access-token', testUserToken)
           .send('user=invalid')
           .send('date=' + Date.now())
@@ -482,7 +484,7 @@ describe('Track Service Integration Tests', function() {
       });
       it('returns status code 400 with userId that is not associated with a user in database', function(done) {
         request(app)
-          .post('/tracks/test1/addComment')
+          .post('/tracks/test1/comments')
           .set('x-access-token', testUserToken)
           .send('user=5a29a767dbfefada3041b944')
           .send('date=' + Date.now())
@@ -493,9 +495,9 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
       });
-      it('returns status code 400 when trackURL sent has no associated track in database', function(done) {
+      it('returns status code 400 with trackURL that is not associated with a track in database', function(done) {
         request(app)
-          .post('/tracks/nonExistentTrackURL/addComment')
+          .post('/tracks/nonExistentTrackURL/comments')
           .set('x-access-token', testUserToken)
           .send('user=' + testUser._id)
           .send('date=' + Date.now())
@@ -504,16 +506,36 @@ describe('Track Service Integration Tests', function() {
       });
     });
     
-    describe.skip('POST /tracks/:trackURL/addDescription', function() {
+    describe.skip('PATCH /tracks/:trackURL/addDescription', function() {
       it('does something', function(done) {
         done();
       });
     });
     
-    describe.skip('PATCH /tracks/:trackURL', function() {
-      it('does something', function(done) {
-        done();
+    describe('PATCH /tracks/:trackURL/title', function() {
+      it('returns status code 200 with valid data', function(done) {
+        let newTrackTitle = "even littler idea";
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/title`)
+          .set('x-access-token', testUserToken)
+          .send('newTitle=' + newTrackTitle)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal(`Old track title (${testTrack.title}) updated. New title is (${newTrackTitle})`)
+          })
+          .end(done)
       });
+      it('returns status code 400 with trackURL that is not associated with a track in database', function(done) {
+        request(app)
+          .patch('/tracks/nonExistentTrackURL/title')
+          .set('x-access-token', testUserToken)
+          .send('newTitle=' + 'even littler idea')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("No track associated with that trackURL")
+          })
+          .end(done)
+        });
     });
     
     describe.skip('DELETE /tracks/:trackURL', function() {

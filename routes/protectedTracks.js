@@ -12,19 +12,21 @@ protectedTrackRoutes.post('/', function(req, res) {
 });
 
 // Add comment to track by trackURL
-protectedTrackRoutes.post('/:trackURL/addComment', function(req, res) {
+protectedTrackRoutes.post('/:trackURL/comments', function(req, res) {
   return trackController.addCommentToTrackByTrackURL(req, res);
 });
 
-// Add desciption to track by trackURL
-protectedTrackRoutes.post('/:trackURL/addDescription', function(req, res) {
-  //return trackController.addCommentToTrackByTrackURL(req, res);
+// Update track description by trackURL
+protectedTrackRoutes.patch('/:trackURL/description', function(req, res) {
+  return trackController.updateTrackDescriptionByTrackURL(req, res);
 });
 
-protectedTrackRoutes.patch('/:trackURL', function(req, res) {
+// Update track title by trackURL
+protectedTrackRoutes.patch('/:trackURL/title', function(req, res) {
   return trackController.updateTrackTitleByTrackURL(req, res);
 });
 
+// Delete track by trackURL
 protectedTrackRoutes.delete('/:trackURL', function(req, res) {
   return trackController.deleteTrackByTrackURL(req, res);
 });

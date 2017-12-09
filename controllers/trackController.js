@@ -278,21 +278,17 @@ exports.postTrack = (req, res) => {
   });
 };
 
-// TODO updating track name
 exports.updateTrackTitleByTrackURL = function(req, res) {
   var trackURL = req.params.trackURL;
-  var updatedTitle = req.body.title;
-  var query = Track.update({
-    trackURL: trackURL
-  }, {
-    title: updatedTitle
-  });
-
-  query.exec(function(err, results) {
-    if (err)
-      res.sendStatus(500);
-    else
-      res.json("Track Title Updated");
+  var newTitle = req.body.newTitle;
+  
+  Track.findOneAndUpdate({ trackURL: trackURL }, { title: newTitle }, (err, results) => {
+    if (err) res.sendStatus(500);
+    else if(!results) {
+      res.status(400).json({ message: 'No track associated with that trackURL' });
+    } else {
+      res.status(200).json({ message: `Old track title (${results.title}) updated. New title is (${newTitle})` });
+    }
   });
 };
 
@@ -336,4 +332,9 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
       })
     })
   }
+};
+
+// TODO implement update track description function
+exports.updateTrackDescriptionByTrackURL = (req, res) => {
+  
 };

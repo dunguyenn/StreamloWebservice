@@ -525,7 +525,7 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
       });
-      it('returns status code 400 with trackURL that is not associated with a track in database', function(done) {
+      it('returns status code 400 and correct message with trackURL that is not associated with a track in database', function(done) {
         request(app)
           .patch('/tracks/nonExistentTrackURL/title')
           .set('x-access-token', testUserToken)
@@ -536,6 +536,17 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
         });
+        it('returns status code 400 and correct message when attempting to update to track title that is longer then 100 characters', function(done) {
+          request(app)
+            .patch(`/tracks/${testTrack.trackURL}/title`)
+            .set('x-access-token', testUserToken)
+            .send('newTitle=' + 'aStringPaddedTo101Characters1111111111111111111111111111111111111111111111111111111111111111111111111')
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("New track title exceeds maximum length of track title (100 characters)")
+            })
+            .end(done)
+          });
     });
     
     describe.skip('DELETE /tracks/:trackURL', function() {

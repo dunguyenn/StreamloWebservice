@@ -282,9 +282,16 @@ exports.updateTrackTitleByTrackURL = function(req, res) {
   var trackURL = req.params.trackURL;
   var newTitle = req.body.newTitle;
   
-  Track.findOneAndUpdate({ trackURL: trackURL }, { title: newTitle }, (err, results) => {
-    if (err) res.sendStatus(500);
-    else if(!results) {
+  Track.findOneAndUpdate({ trackURL: trackURL }, { title: newTitle }, { runValidators: true },  (err, results) => {
+    if (err) {
+      switch(err.errors.title.kind) {
+        case "maxlength":
+          res.status(400).json({ message: "New track title exceeds maximum length of track title (100 characters)" });
+          break;
+        default: 
+          res.sendStatus(500);
+      }  
+    } else if(!results) {
       res.status(400).json({ message: 'No track associated with that trackURL' });
     } else {
       res.status(200).json({ message: `Old track title (${results.title}) updated. New title is (${newTitle})` });

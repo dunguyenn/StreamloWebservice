@@ -1,14 +1,15 @@
 /**
  * Module dependencies.
  */
-var express = require('express');
-var errorHandler = require('errorhandler');
-var mongoose = require('mongoose');
-var bodyParser = require('body-parser')
-var dotenv = require('dotenv');
-var passport = require('passport');
-var cors = require('cors');
-var compression = require('compression');
+const express = require('express');
+const errorHandler = require('errorhandler');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser')
+const dotenv = require('dotenv');
+const passport = require('passport');
+const cors = require('cors');
+const compression = require('compression');
+const bluebird = require('bluebird')
 
 /**
  * Load environment variables from .env file.
@@ -34,7 +35,7 @@ let options = {
   bufferMaxEntries: 0 // If not connected, return errors immediately rather than waiting for reconnect
 };
 
-mongoose.Promise = require('bluebird');
+mongoose.Promise = bluebird;
 mongoose.connect(process.env.MONGODB, options);
 mongoose.connection.on('error', () => {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');

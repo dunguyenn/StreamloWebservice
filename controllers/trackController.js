@@ -253,13 +253,14 @@ exports.postTrack = (req, res) => {
             uploderId, {
               $push: {
                 "uploadedTracks": {
-                  uploadedTrackId: trackGridFSId
+                  uploadedTrackId: trackGridFSId,
+                  trackID: track._id
                 }
               },
               $inc: {
                 "numberOfTracksUploaded": 1
               }
-            }, { safe: true },
+            },
             function(err) {
               if (err) { // If uploaders user model fails to update, remove uploaded track from gridfs
                 bucket.delete(trackGridFSId);

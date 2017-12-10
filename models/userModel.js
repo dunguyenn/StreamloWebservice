@@ -86,6 +86,9 @@ var userSchema = new Schema({
   uploadedTracks: [{
     uploadedTrackId: {
       type: ObjectId
+    },
+    trackID: {
+      type: ObjectId
     }
   }]
 });
@@ -124,8 +127,20 @@ userSchema.pre('save', function saveHook(next) {
   });
 });
 
+// after removal of a user, also remove of the users uploaded tracks
 userSchema.post('findOneAndRemove', function(doc) {
-  // TODO On removal of a user, also remove of the users uploaded tracks
+  const Track = require('../models/trackModel.js');
+
+  if (doc == null || doc.uploadedTracks === undefined || doc.uploadedTracks.length == 0) {
+    // array empty or does not exist
+    return;
+  } else {
+    doc.uploadedTracks.forEach((track, index, array) => {
+      Track.findOneAndRemove({ _id: track.trackID }, function(err) {
+        return;
+      });
+    });
+  }
 });
 
 module.exports = mongoose.model('user', userSchema);

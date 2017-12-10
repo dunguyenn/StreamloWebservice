@@ -24,23 +24,28 @@ describe('Authentication Service Integration Tests', function() {
       return done();
     });
   });
+  
   after((done) => {
     app.close();
     // remove test user after auth service tests finish
-    User.find({
+    User.findOneAndRemove({
       email: "test@hotmail.com"
-    }).remove(() => {
+    }, () => {
       return done();
     });
   });
   
   describe('Public Authentication Endpoints', function() {
+    let validLoginTestData = {
+      email: "test@hotmail.com",
+      password: "password"
+    }
     describe('POST /auth/login', function() {      
       it('returns status code 200 with valid data', function(done) {
         request(app)
           .post('/auth/login')
-          .send('email=test@hotmail.com')
-          .send('password=password')
+          .send(`email=${validLoginTestData.email}`)
+          .send(`password=${validLoginTestData.password}`)
           .expect(200)
           .expect(function(res) {
             res.body.message.should.equal("You have successfully logged in!");
@@ -54,7 +59,7 @@ describe('Authentication Service Integration Tests', function() {
         request(app)
           .post('/auth/login')
           .send('email=test')
-          .send('password=password')
+          .send(`password=${validLoginTestData.password}`)
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Please provide a valid email address.");
@@ -65,7 +70,7 @@ describe('Authentication Service Integration Tests', function() {
       it('returns status code 400 with no email sent', function(done) {
         request(app)
           .post('/auth/login')
-          .send('password=password')
+          .send(`password=${validLoginTestData.password}`)
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Please provide a valid email address.");
@@ -77,7 +82,7 @@ describe('Authentication Service Integration Tests', function() {
         request(app)
           .post('/auth/login')
           .send('email=idontexist@gmail.com')
-          .send('password=password')
+          .send(`password=${validLoginTestData.password}`)
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("No account associated with that email or invalid password");
@@ -88,7 +93,7 @@ describe('Authentication Service Integration Tests', function() {
       it('returns status code 400 with invalid password', function(done) {
         request(app)
           .post('/auth/login')
-          .send('email=test@hotmail.com')
+          .send(`email=${validLoginTestData.email}`)
           .send('password=incorrectPassword')
           .expect(400)
           .expect(function(res) {
@@ -100,7 +105,7 @@ describe('Authentication Service Integration Tests', function() {
       it('returns status code 400 with no password sent', function(done) {
         request(app)
           .post('/auth/login')
-          .send('email=test@hotmail.com')
+          .send(`email=${validLoginTestData.email}`)
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Please provide a valid password.");
@@ -111,7 +116,7 @@ describe('Authentication Service Integration Tests', function() {
       it('returns status code 400 with password under 8 characters', function(done) {
         request(app)
           .post('/auth/login')
-          .send('email=test@hotmail.com')
+          .send(`email=${validLoginTestData.email}`)
           .send('password=1234567')
           .expect(400)
           .expect(function(res) {
@@ -123,7 +128,7 @@ describe('Authentication Service Integration Tests', function() {
       it('returns status code 400 with password over 50 characters', function(done) {
         request(app)
           .post('/auth/login')
-          .send('email=test@hotmail.com')
+          .send(`email=${validLoginTestData.email}`)
           .send('password=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
           .expect(400)
           .expect(function(res) {
@@ -135,16 +140,9 @@ describe('Authentication Service Integration Tests', function() {
 
     describe('POST /auth/signup', function() {
       after(function(done) {
-        let query = User.findOneAndRemove({
+        User.findOneAndRemove({
           email: "test123@hotmail.com"
-        }).exec(); // findOneAndRemove returns a query. query.exec() executes query and returns a promise
-        
-        query.then(() => {
-          return User.findOneAndRemove({
-            email: "test1234@hotmail.com"
-          }).exec(); // returns another promise
-        })
-        .then(() => {
+        }, (err) => {
           return done();
         });
       });

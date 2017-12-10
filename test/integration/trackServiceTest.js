@@ -23,15 +23,20 @@ describe('Track Service Integration Tests', function() {
   var testTrack;
   var trackGridFSId;
   
+  var userMongoID = "5a2d83d81b815cd644df5468"
+  var trackMongoID = "6a2d83d81b815cd644df5468"
+  
   before(function(done) {
     app = require('../../app');
     // create test user for use with track service tests
     const testUserData = new User({
+      _id: userMongoID,
       email: "test@hotmail.com",
       password: "password",
       userURL: "testurl",
       displayName: "testDisplayName",
-      city: "Belfast"
+      city: "Belfast",
+      uploadedTracks: undefined
     });
     
     User(testUserData).save((err, user) => {
@@ -53,36 +58,44 @@ describe('Track Service Integration Tests', function() {
       
       uploadStream.on('finish', () => {
         testTrack = new Track({
+          _id: trackMongoID,
           title: "little idea",
           genre: "Pop",
           city: "Belfast",
           trackURL: "testurl",
           dateUploaded: moment().add(30, 'minute'),
-          uploaderId: testUser._id,
+          uploaderId: userMongoID,
           description: "testDesc",
           trackBinaryId: trackGridFSId
         });
 
         Track(testTrack).save((err, track) => {
-          testTrackId = track._id;
-          return done();
+          User.findOneAndUpdate(
+            { _id: userMongoID }, {
+              $push: {
+                "uploadedTracks": {
+                  uploadedTrackId: trackGridFSId,
+                  trackID: trackMongoID
+                }
+              },
+              $inc: {
+                "numberOfTracksUploaded": 1
+              }
+            },
+          (err, doc) => {
+            return done();
+          });
         });
       });
     });
   });
-  
+
   after(function(done) {
-    app.close();
-    // remove test user after track service tests finish
-    User.findOneAndRemove({
-        email: "test@hotmail.com"
-      })
-      .then(() => {
-        // remove test track after track service tests finish
-        Track.findOneAndRemove({ _id: testTrackId }, function(err) {
-          return done();
-        });
-      });
+    var removeUserPromise = User.findOneAndRemove({ email: "test@hotmail.com" }).exec();
+    removeUserPromise.then(() => {
+      app.close();
+      return done();
+    });
   });
   
   describe('Public Track Endpoints', function() {
@@ -200,14 +213,6 @@ describe('Track Service Integration Tests', function() {
   });
 
   describe('Protected Track Endpoints', function() {
-    let uploadedTestTrackId;
-
-    after(function(done) {
-      Track.findOneAndRemove({ _id: uploadedTestTrackId }, function() {
-        done();
-      });
-    });
-    
     describe('POST /tracks/', function() {
       let validDate =  moment().toISOString();
       let invalidDateFormat = Date.now()
@@ -227,7 +232,7 @@ describe('Track Service Integration Tests', function() {
           .attach('track', 'test/littleidea.mp3')
           .expect(201)
           .expect(function(res) {
-            uploadedTestTrackId = res.body.trackBinaryId;
+            //uploadedTestTrackId = res.body.trackBinaryId;
             res.body.message.should.equal("File uploaded successfully")
             assert.equal(ObjectID.isValid(res.body.trackBinaryId), true)
           })
@@ -506,7 +511,7 @@ describe('Track Service Integration Tests', function() {
       });
     });
     
-    describe.skip('PATCH /tracks/:trackURL/addDescription', function() {
+    describe.skip('PATCH /tracks/:trackURL/description', function() {
       it('does something', function(done) {
         done();
       });
@@ -550,8 +555,45 @@ describe('Track Service Integration Tests', function() {
     });
     
     describe.skip('DELETE /tracks/:trackURL', function() {
-      it('does something', function(done) {
-        done();
+      it('returns status code 200 with valid data', function(done) {
+        request(app)
+          .delete(`/tracks/${testTrack.trackURL}`)
+          .set('x-access-token', testUserToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal(`Track deleted successfully`)
+          })
+          .end(done)
+      });
+      it('returns status code 400 and correct message when logged in user did not upload the track and therfore does not have permission to delete it', function(done) {
+        let randomJWTAccessToken = 'acJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1YTIwNGFhZDUyMTlkZWZjYmE1MTk1NzUiLCJpYXQiOjE1MTI4MzYxMzcsImV4cCI6MTUxMjkyMjUzN30.OXRJAO4NmIyT2Z_5WtYFjenACw0mY0UNUZFdZ0TEvF4'
+        request(app)
+          .delete(`/tracks/${testTrack.trackURL}`)
+          .set('x-access-token', randomJWTAccessToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal('JWT token provided does not map to a user with permission to delete this track.')
+          })
+          .end(done)
+      });
+      it('returns status code 404 with valid data when trackURL supplied does not map to a track on the system', function(done) {
+        request(app)
+          .delete(`/tracks/nonExistentTrackURL`)
+          .set('x-access-token', testUserToken)
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal(`Track deleted successfully`)
+          })
+          .end(done)
+      });
+      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
+        request(app)
+          .delete(`/tracks/${testTrack.trackURL}`)
+          .expect(401)
+          .expect(function(res) {
+            res.body.message.should.equal(`JWT token provided does not map to a user with permission to delete this track.`)
+          })
+          .end(done)
       });
     });
   });

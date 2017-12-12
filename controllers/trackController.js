@@ -301,15 +301,26 @@ exports.updateTrackTitleByTrackURL = function(req, res) {
 };
 
 exports.deleteTrackByTrackURL = function(req, res) {
-  var trackURL = req.params.trackURL;
-  var query = Track.remove({
+  let trackURL = req.params.trackURL;
+  
+  let query = Track.find({
     trackURL: trackURL
   });
-  query.exec(function(err, results) {
-    if (err)
-      res.sendStatus(500);
-    else
-      res.json("Track deleted");
+  
+  query.exec(function(err, track) {
+    if(err) return res.sendStatus(500);
+    else if(track.length == 0) {
+      res.status(404).json({ message: "No track with this trackURL found on the system" })
+    } else {
+      let uploaderIdOfCandidateTrack = track[0].uploaderId;
+      let clientUploaderId = req.decoded.userId;
+
+      if(clientUploaderId == uploaderIdOfCandidateTrack) {
+        res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
+      } else {
+        res.status(401).json({ message: 'JWT token provided does not map to a user who has permission to delete this track.' });
+      }
+    }
   });
 };
 

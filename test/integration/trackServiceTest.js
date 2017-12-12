@@ -554,25 +554,49 @@ describe('Track Service Integration Tests', function() {
           });
     });
     
-    describe.skip('DELETE /tracks/:trackURL', function() {
+    describe('DELETE /tracks/:trackURL', function() {
+      let testUserWithNoUploadedTracks;
+      let testUserWithNoUploadedTracksToken;
+      
+      before(function(done) {
+        const testUserData = new User({
+          email: "deleteTest@hotmail.com",
+          password: "password",
+          userURL: "deleteTestURL",
+          displayName: "deleteTestDispName",
+          city: "Belfast"
+        });
+
+        User(testUserData).save((err, user) => {
+          testUserWithNoUploadedTracks = user;
+          testUserWithNoUploadedTracksToken = utilsJWT.generateToken(user);
+          done();
+        });
+      });
+      
+      after(function(done) {
+        User.findByIdAndRemove(testUserWithNoUploadedTracks._id, () => {
+          return done();
+        });
+      });
+
       it('returns status code 200 with valid data', function(done) {
         request(app)
           .delete(`/tracks/${testTrack.trackURL}`)
           .set('x-access-token', testUserToken)
           .expect(200)
           .expect(function(res) {
-            res.body.message.should.equal(`Track deleted successfully`)
+            res.body.message.should.equal(`Track with trackURL '${testTrack.trackURL}' deleted successfully`)
           })
           .end(done)
       });
-      it('returns status code 400 and correct message when logged in user did not upload the track and therfore does not have permission to delete it', function(done) {
-        let randomJWTAccessToken = 'acJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1YTIwNGFhZDUyMTlkZWZjYmE1MTk1NzUiLCJpYXQiOjE1MTI4MzYxMzcsImV4cCI6MTUxMjkyMjUzN30.OXRJAO4NmIyT2Z_5WtYFjenACw0mY0UNUZFdZ0TEvF4'
+      it('returns status code 401 and correct message when logged in user did not upload the track and therfore does not have permission to delete it', function(done) {
         request(app)
           .delete(`/tracks/${testTrack.trackURL}`)
-          .set('x-access-token', randomJWTAccessToken)
-          .expect(400)
+          .set('x-access-token', testUserWithNoUploadedTracksToken)
+          .expect(401)
           .expect(function(res) {
-            res.body.message.should.equal('JWT token provided does not map to a user with permission to delete this track.')
+            res.body.message.should.equal('JWT token provided does not map to a user who has permission to delete this track.')
           })
           .end(done)
       });
@@ -582,16 +606,17 @@ describe('Track Service Integration Tests', function() {
           .set('x-access-token', testUserToken)
           .expect(404)
           .expect(function(res) {
-            res.body.message.should.equal(`Track deleted successfully`)
+            res.body.message.should.equal('No track with this trackURL found on the system')
           })
           .end(done)
       });
-      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
+      it('returns status code 403 and correct message when no jwt access token header present', function(done) {
         request(app)
           .delete(`/tracks/${testTrack.trackURL}`)
-          .expect(401)
+          .expect(403)
           .expect(function(res) {
-            res.body.message.should.equal(`JWT token provided does not map to a user with permission to delete this track.`)
+            res.body.success.should.equal(false);
+            res.body.message.should.equal('No token provided.');
           })
           .end(done)
       });

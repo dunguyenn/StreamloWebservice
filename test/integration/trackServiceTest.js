@@ -511,8 +511,40 @@ describe('Track Service Integration Tests', function() {
       });
     });
     
-    describe.skip('PATCH /tracks/:trackURL/description', function() {
-      it('does something', function(done) {
+    describe('PATCH /tracks/:trackURL/description', function() {
+      it('returns status code 200 with valid data', function(done) {
+        let newTrackDescription = "newDescription";
+        
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/description`)
+          .set('x-access-token', testUserToken)
+          .send('newDescription=' + newTrackDescription)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal(`Old track description (${testTrack.description}) updated. New description is (${newTrackDescription})`)
+          })
+          .end(done)
+      });
+      it('returns status code 400 and correct message when new description is the same as description currently in the database', function(done) {        
+        let newTrackDescription = "newDescription";
+
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/description`)
+          .set('x-access-token', testUserToken)
+          .send('newDescription=' + newTrackDescription)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal(`Track description not updated. Old track description (${newTrackDescription}) is the same as new requested track description (${newTrackDescription})`)
+          })
+          .end(done)
+      });
+      it('returns status code 404 and correct message when no track found with this trackurl', function(done) {
+        done();
+      });
+      it('returns status code 400 and correct message when new description exceeds maximum description length', function(done) {
+        done();
+      });
+      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
         done();
       });
     });
@@ -590,11 +622,11 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
       });
-      it('returns status code 401 and correct message when logged in user did not upload the track and therfore does not have permission to delete it', function(done) {
+      it('returns status code 403 and correct message when logged in user did not upload the track and therfore does not have permission to delete it', function(done) {
         request(app)
           .delete(`/tracks/${testTrack.trackURL}`)
           .set('x-access-token', testUserWithNoUploadedTracksToken)
-          .expect(401)
+          .expect(403)
           .expect(function(res) {
             res.body.message.should.equal('JWT token provided does not map to a user who has permission to delete this track.')
           })
@@ -610,10 +642,10 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
       });
-      it('returns status code 403 and correct message when no jwt access token header present', function(done) {
+      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
         request(app)
           .delete(`/tracks/${testTrack.trackURL}`)
-          .expect(403)
+          .expect(401)
           .expect(function(res) {
             res.body.success.should.equal(false);
             res.body.message.should.equal('No token provided.');

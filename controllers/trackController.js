@@ -318,7 +318,7 @@ exports.deleteTrackByTrackURL = function(req, res) {
       if(clientUploaderId == uploaderIdOfCandidateTrack) {
         res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
       } else {
-        res.status(401).json({ message: 'JWT token provided does not map to a user who has permission to delete this track.' });
+        res.status(403).json({ message: 'JWT token provided does not map to a user who has permission to delete this track.' });
       }
     }
   });
@@ -353,7 +353,27 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
   }
 };
 
-// TODO implement update track description function
 exports.updateTrackDescriptionByTrackURL = (req, res) => {
+  var trackURL = req.params.trackURL;
+  var newDescription = req.body.newDescription;
   
+  Track.findOneAndUpdate({ trackURL: trackURL }, { description: newDescription }, { runValidators: true },  (err, results) => {
+    if (err) {
+      switch(err.errors.description.kind) {
+        case "maxlength":
+          res.status(400).json({ message: "New description exceeds maximum length of description (4000 characters)" });
+          break;
+        default: 
+          res.sendStatus(500);
+      }  
+    } else if(!results) {
+      res.status(404).json({ message: 'No track associated with that trackURL' });
+    } else {
+      if(results.description == newDescription) {
+        res.status(400).json({ message: `Track description not updated. Old track description (${results.description}) is the same as new requested track description (${newDescription})` });
+      } else {
+        res.status(200).json({ message: `Old track description (${results.description}) updated. New description is (${newDescription})` });
+      }
+    }
+  });
 };

@@ -232,7 +232,6 @@ describe('Track Service Integration Tests', function() {
           .attach('track', 'test/littleidea.mp3')
           .expect(201)
           .expect(function(res) {
-            //uploadedTestTrackId = res.body.trackBinaryId;
             res.body.message.should.equal("File uploaded successfully")
             assert.equal(ObjectID.isValid(res.body.trackBinaryId), true)
           })
@@ -458,6 +457,29 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
       });
+      
+      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
+        let validDate =  moment().toISOString();
+        let invalidDateFormat = Date.now()
+        let dateThirtyOneMinuteBeforeDateNow = moment().subtract(31, 'minute').toISOString();
+        
+        request(app)
+          .post('/tracks')
+          .field('title', 'testTrack')
+          .field('genre', 'Pop')
+          .field('city', 'Belfast')
+          .field('trackURL', 'test1')
+          .field('dateUploaded', validDate)
+          .field('uploaderId', testUser._id.toString())
+          .field('description', 'testDesc')
+          .attach('track', 'test/littleidea.mp3')
+          .expect(401)
+          .expect(function(res) {
+            res.body.success.should.equal(false);
+            res.body.message.should.equal('No token provided.');
+          })
+          .end(done)
+      });
     });
     
     describe('POST /tracks/:trackURL/comments', function() {
@@ -508,6 +530,20 @@ describe('Track Service Integration Tests', function() {
           .send('date=' + Date.now())
           .send('body=testComment')
           .expect(400, done)
+      });
+      
+      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
+        request(app)
+          .post('/tracks/test1/comments')
+          .send('user=' + testUser._id)
+          .send('date=' + Date.now())
+          .send('body=testComment')
+          .expect(401)
+          .expect(function(res) {
+            res.body.success.should.equal(false);
+            res.body.message.should.equal('No token provided.');
+          })
+          .end(done)
       });
     });
     
@@ -597,18 +633,30 @@ describe('Track Service Integration Tests', function() {
             res.body.message.should.equal("No track associated with that trackURL")
           })
           .end(done)
-        });
-        it('returns status code 400 and correct message when attempting to update to track title that is longer then 100 characters', function(done) {
-          request(app)
-            .patch(`/tracks/${testTrack.trackURL}/title`)
-            .set('x-access-token', testUserToken)
-            .send('newTitle=' + 'aStringPaddedTo101Characters1111111111111111111111111111111111111111111111111111111111111111111111111')
-            .expect(400)
-            .expect(function(res) {
-              res.body.message.should.equal("New track title exceeds maximum length of track title (100 characters)")
-            })
-            .end(done)
-          });
+      });
+      it('returns status code 400 and correct message when attempting to update to track title that is longer then 100 characters', function(done) {
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/title`)
+          .set('x-access-token', testUserToken)
+          .send('newTitle=' + 'aStringPaddedTo101Characters1111111111111111111111111111111111111111111111111111111111111111111111111')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("New track title exceeds maximum length of track title (100 characters)")
+          })
+          .end(done)
+      });
+      it('returns status code 401 and correct message when no jwt access token header present', function(done) {
+        let newTrackTitle = "even littler idea";
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/title`)
+          .send('newTitle=' + newTrackTitle)
+          .expect(401)
+          .expect(function(res) {
+            res.body.success.should.equal(false);
+            res.body.message.should.equal('No token provided.');
+          })
+          .end(done)
+      });
     });
     
     describe('DELETE /tracks/:trackURL', function() {

@@ -367,7 +367,7 @@ exports.updateTrackDescriptionByTrackURL = (req, res) => {
           res.sendStatus(500);
       }  
     } else if(!results) {
-      res.status(404).json({ message: 'No track associated with that trackURL' });
+      res.status(404).json({ message: 'No track associated with requested trackURL' });
     } else {
       if(results.description == newDescription) {
         res.status(400).json({ message: `Track description not updated. Old track description (${results.description}) is the same as new requested track description (${newDescription})` });

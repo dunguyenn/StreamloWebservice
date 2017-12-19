@@ -539,14 +539,39 @@ describe('Track Service Integration Tests', function() {
           .end(done)
       });
       it('returns status code 404 and correct message when no track found with this trackurl', function(done) {
-        done();
+        request(app)
+          .patch(`/tracks/nonExistentTrackURL/description`)
+          .set('x-access-token', testUserToken)
+          .send('newDescription=' + 'SomeKindOfDescription')
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal(`No track associated with requested trackURL`)
+          })
+          .end(done)
       });
       it('returns status code 400 and correct message when new description exceeds maximum description length', function(done) {
-        done();
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/description`)
+          .set('x-access-token', testUserToken)
+          .send('newDescription=' + 'a'.repeat(4001))
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal(`New description exceeds maximum length of description (4000 characters)`)
+          })
+          .end(done)
       });
       it('returns status code 401 and correct message when no jwt access token header present', function(done) {
-        done();
-      });
+        let newTrackDescription = "newDescription";
+
+        request(app)
+          .patch(`/tracks/${testTrack.trackURL}/description`)
+          .send('newDescription=' + newTrackDescription)
+          .expect(401)
+          .expect(function(res) {
+            res.body.message.should.equal(`No token provided.`)
+          })
+          .end(done)
+        });
     });
     
     describe('PATCH /tracks/:trackURL/title', function() {

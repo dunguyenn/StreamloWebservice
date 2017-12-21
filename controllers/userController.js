@@ -125,17 +125,30 @@ exports.getUserByURL = function(req, res) {
 
 exports.getUserById = function(req, res) {
   var userId = req.params.userId;
-  var query = User.findOne({
+  
+  var query = User.find({
     _id: userId
   });
+
+  if(req.query.display_name) {
+    let displayName = req.query.display_name;
+    query = User.find({
+      displayName: displayName
+    });
+  } else if(req.query.userURL) {
+    let userURL = req.query.userURL;
+    query = User.find({
+      userURL: userURL
+    });
+  }
 
   query.exec(function(err, results) {
     if (err) {
       res.sendStatus(500);
     } else if(!results) {
-      res.sendStatus(204);
+      res.sendStatus(404);
     } else {
-      res.json(results);
+      res.json( { users: results } );
     }
   });
 };

@@ -46,43 +46,59 @@ describe('User Service Integration Tests', function() {
 
   describe('Public User Endpoints', function() {
     describe('GET users/:id', function() {
-      describe('GET users/:id', function() {
-        it('retuns status code 200 with valid request. Response should contain array containing single matched user', function(done) {
-          request(app)
-            .get('/users/' + testUser._id)
-            .expect(200)
-            .expect(function(res) {
-              assert.isArray(res.body.users);
-              assert.lengthOf(res.body.users, 1);
-            })
-            .end(done)
-        });
+      it('retuns status code 200 when userID requested maps to user on database. Response should contain array containing single matched user', function(done) {
+        request(app)
+          .get('/users/' + testUser._id)
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.users);
+            assert.lengthOf(res.body.users, 1);
+          })
+          .end(done)
       });
       
-      describe('GET users/:id?display_name=', function() {
-        it('retuns status code 200 with valid request. Response should contain array containing each matched user', function(done) {
-          request(app)
-            .get('/users/' + testUser._id + "?display_name=" + testUser.displayName)
-            .expect(200)
-            .expect(function(res) {
-              assert.isArray(res.body.users);
-              assert.lengthOf(res.body.users, 2);
-            })
-            .end(done)
-        });
+      it('retuns status code 404 with correct message when requested userID does not map to a user on the system', function(done) {
+        const mongoIDThatDoesNotMapToATestUser = "5a2d83d81b815cd644df5568"
+        request(app)
+          .get('/users/' + mongoIDThatDoesNotMapToATestUser)
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal('No user associated with requested userID')
+          })
+          .end(done)
       });
       
-      describe('GET users/:id?userURL=', function() {
-        it('retuns status code 200 with valid request. Response should contain array containing single matched user', function(done) {
-          request(app)
-            .get('/users/' + testUser._id + "?userURL=" + testUser.userURL)
-            .expect(200)
-            .expect(function(res) {
-              assert.isArray(res.body.users);
-              assert.lengthOf(res.body.users, 1);
-            })
-            .end(done)
-        });
+      it('retuns status code 400 with correct message when invalid mongo objectID requested', function(done) {
+        const invalidMongoID = "123"
+        request(app)
+          .get('/users/' + invalidMongoID)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal('Invalid userID')
+          })
+          .end(done)
+      });
+
+      it('retuns status code 200 with query string "display_name" set to valid test user displayName. Response should contain array containing each matched user', function(done) {
+        request(app)
+          .get('/users/' + testUser._id + "?display_name=" + testUser.displayName)
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.users);
+            assert.lengthOf(res.body.users, 2);
+          })
+          .end(done)
+      });
+    
+      it('retuns status code 200 with query string "userURL" set to valid test user userURL. Response should contain array containing single matched user', function(done) {
+        request(app)
+          .get('/users/' + testUser._id + "?userURL=" + testUser.userURL)
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.users);
+            assert.lengthOf(res.body.users, 1);
+          })
+          .end(done)
       });
     });
   });

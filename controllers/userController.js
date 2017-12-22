@@ -1,7 +1,10 @@
-var User = require('../models/userModel.js');
-var mongoose = require('mongoose');
-var fs = require('fs');
-var conn = mongoose.connection;
+const User = require('../models/userModel.js');
+const mongodb = require('mongodb');
+const ObjectID = require('mongodb').ObjectID;
+const mongoose = require('mongoose');
+const fs = require('fs');
+const conn = mongoose.connection;
+const _ = require('lodash');
 
 exports.getUsersByDisplayName = function(req, res) {
   let response = {};
@@ -125,30 +128,33 @@ exports.getUserByURL = function(req, res) {
 
 exports.getUserById = function(req, res) {
   var userId = req.params.userId;
-  
-  var query = User.find({
-    _id: userId
-  });
-
-  if(req.query.display_name) {
-    let displayName = req.query.display_name;
-    query = User.find({
-      displayName: displayName
+  if(!ObjectID.isValid(userId)) {
+    res.status(400).json({ message: "Invalid userID" });
+  } else {
+    var query = User.find({
+      _id: userId
     });
-  } else if(req.query.userURL) {
-    let userURL = req.query.userURL;
-    query = User.find({
-      userURL: userURL
+
+    if(req.query.display_name) {
+      let displayName = req.query.display_name;
+      query = User.find({
+        displayName: displayName
+      });
+    } else if(req.query.userURL) {
+      let userURL = req.query.userURL;
+      query = User.find({
+        userURL: userURL
+      });
+    }
+
+    query.exec(function(err, results) {
+      if (err) {
+        res.sendStatus(500);
+      } else if(_.isEmpty(results)) {
+        res.status(404).json({ message: "No user associated with requested userID" });
+      } else {
+        res.status(200).json( { users: results } );
+      }
     });
   }
-
-  query.exec(function(err, results) {
-    if (err) {
-      res.sendStatus(500);
-    } else if(!results) {
-      res.sendStatus(404);
-    } else {
-      res.json( { users: results } );
-    }
-  });
 };

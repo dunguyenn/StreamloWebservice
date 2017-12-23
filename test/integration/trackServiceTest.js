@@ -99,7 +99,7 @@ describe('Track Service Integration Tests', function() {
   });
   
   describe('Public Track Endpoints', function() {
-    describe('GET /tracks/', function() {
+    describe('GET /tracks', function() {
       it('returns status code 200 with valid data', function(done) {
         request(app)
           .get('/tracks?q=little+idea&page=0')
@@ -213,7 +213,7 @@ describe('Track Service Integration Tests', function() {
   });
 
   describe('Protected Track Endpoints', function() {
-    describe('POST /tracks/', function() {
+    describe('POST /tracks', function() {
       let validDate =  moment().toISOString();
       let invalidDateFormat = Date.now()
       let dateThirtyOneMinuteBeforeDateNow = moment().subtract(31, 'minute').toISOString();

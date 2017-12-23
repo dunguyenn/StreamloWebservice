@@ -6,48 +6,6 @@ const fs = require('fs');
 const conn = mongoose.connection;
 const _ = require('lodash');
 
-exports.getUsersByDisplayName = function(req, res) {
-  let response = {};
-  var perPage = 5
-  var page = Math.max(0, req.query.page);
-  var requestedDisplayname = req.query.q;
-
-  var query = User.find({
-    displayName: requestedDisplayname
-  });
-
-  query.limit(5)
-    .skip(perPage * page)
-    .exec((err, results) => {
-      if (err) {
-        res.sendStatus(500);
-      } else {
-        response.users = results;
-        getNumberOfMatchingUsersByDisplayName(requestedDisplayname, (err, results) => {
-          if (err) {
-            res.sendStatus(500);
-          } else {
-            response.numMatchingUsers = results;
-            res.json(response);
-          }
-        });
-      }
-    });
-};
-
-let getNumberOfMatchingUsersByDisplayName = (displayName, cb) => {
-  var query = User.count({
-    displayName: displayName
-  });
-
-  query.exec(function(err, results) {
-    if (err)
-      cb(err);
-    else
-      cb(null, results);
-  });
-}
-
 exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
   var displayName = req.query.q;
   var query = User.count({
@@ -62,90 +20,54 @@ exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
   });
 };
 
-// TODO get this is working
+// TODO implement addProfilePictureToUser function
 exports.addProfilePictureToUser = function(req, res) {
-  // var uploadedFileId;
-  // 
-  // var fileName = req.body.userURL;
-  // var filePath = req.file.path;
-  // var filetype = req.file.mimetype;
-  // 
-  // var gfs = grid(conn.db);
-  // 
-  // // Streaming to gridfs
-  // // Filename to store in mongodb
-  // var writestream = gfs.createWriteStream({
-  //   filename: fileName,
-  //   content_type: 'image/jpeg'
-  // });
-  // fs.createReadStream(filePath).pipe(writestream);
-  // 
-  // writestream.on('close', function(file) {
-  //   uploadedFileId = file._id;
-  //   
-  //   var query = User.update({
-  //     trackURL: req.body.userURL
-  //   }, {
-  //     profilePictureBinary: uploadedFileId
-  //   });
-  // 
-  //   query.exec(function(err) {
-  //     if (err) {
-  //       gfs.remove({
-  //         _id: uploadedFileId
-  //       }, function(gfserr) {
-  //         if (gfserr) {
-  //           console.log("error removing gridfs file");
-  //         }
-  //         console.log('Removed gridfs file after unsuccessful db update');
-  //       });
-  //       fs.unlink(filePath);
-  //       res.status(500).send(err);
-  //     } else {
-  //       fs.unlink(filePath);
-  //       res.sendStatus(200);
-  //     }
-  //   });
-  // });
+
 };
 
-exports.getUserByURL = function(req, res) {
-  var userURL = req.params.userURL;
-  var query = User.findOne({
-    userURL: userURL
-  });
-
+exports.getUsers = function(req, res) {
+  let displayName = req.query.display_name;
+  let userURL = req.query.userURL;
+  
+  var query = User.find({});
+  
+  if(displayName && userURL) {
+    query = User.find({
+      displayName: displayName,
+      userURL: userURL
+    });
+  }
+  else if (displayName) {
+    query = User.find({
+      displayName: displayName
+    });
+  } else if(userURL) {
+    query = User.find({
+      userURL: userURL
+    });
+  }
+  
   query.exec(function(err, results) {
     if (err) {
       res.sendStatus(500);
-    } else if(!results) {
-      res.sendStatus(204);
+    } else if(_.isEmpty(results)) {
+      res.status(404).json({ message: "No user associated with requested information" });
     } else {
-      res.json(results);
+      res.status(200).json({ 
+        users: results
+      });
     }
   });
-}
+};
 
 exports.getUserById = function(req, res) {
-  var userId = req.params.userId;
+  let userId = req.params.userId;
   if(!ObjectID.isValid(userId)) {
     res.status(400).json({ message: "Invalid userID" });
   } else {
-    var query = User.find({
+    let query = User.find({
       _id: userId
     });
-
-    if(req.query.display_name) {
-      let displayName = req.query.display_name;
-      query = User.find({
-        displayName: displayName
-      });
-    } else if(req.query.userURL) {
-      let userURL = req.query.userURL;
-      query = User.find({
-        userURL: userURL
-      });
-    }
 
     query.exec(function(err, results) {
       if (err) {
@@ -153,7 +75,9 @@ exports.getUserById = function(req, res) {
       } else if(_.isEmpty(results)) {
         res.status(404).json({ message: "No user associated with requested userID" });
       } else {
-        res.status(200).json( { users: results } );
+        res.status(200).json({ 
+          users: results
+        });
       }
     });
   }

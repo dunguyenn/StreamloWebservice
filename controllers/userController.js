@@ -6,20 +6,6 @@ const fs = require('fs');
 const conn = mongoose.connection;
 const _ = require('lodash');
 
-exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
-  var displayName = req.query.q;
-  var query = User.count({
-    displayName: displayName
-  });
-
-  query.exec(function(err, results) {
-    if (err)
-      res.sendStatus(500);
-    else
-      res.json(results);
-  });
-};
-
 // TODO implement addProfilePictureToUser function
 exports.addProfilePictureToUser = function(req, res) {
 

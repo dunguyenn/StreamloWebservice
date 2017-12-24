@@ -38,7 +38,7 @@ var genreEnu = {
 
 var cityEnu = {
   values: 'Belfast Derry'.split(' '),
-  message: 'Genre validator failed for path `{PATH}` with value `{VALUE}`'
+  message: 'City validator failed for path `{PATH}` with value `{VALUE}`'
 };
 
 var ObjectId = Schema.Types.ObjectId;

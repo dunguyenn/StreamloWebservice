@@ -199,13 +199,12 @@ describe('Track Service Integration Tests', function() {
           })
           .end(done)
       });
-      it('returns status code 200 and an empty array with city name that has no tracks associated with it', function(done) {
+      it('returns status code 400 with invalid city name ', function(done) {
         request(app)
-          .get('/tracks/NonExistentCity/chart')
-          .expect(200)
+          .get('/tracks/InvalidCityName/chart')
+          .expect(400)
           .expect(function(res) {
-            assert.isArray(res.body);
-            assert.lengthOf(res.body, 0);
+            res.body.message.should.equal("Invalid city name")
           })
           .end(done)
       });

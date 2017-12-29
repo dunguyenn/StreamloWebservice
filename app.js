@@ -9,7 +9,7 @@ const dotenv = require('dotenv');
 const passport = require('passport');
 const cors = require('cors');
 const compression = require('compression');
-const bluebird = require('bluebird')
+const bluebird = require('bluebird');
 
 /**
  * Load environment variables from .env file.
@@ -24,6 +24,11 @@ dotenv.config();
 var app = express();
 
 /**
+ * Winston Logging Configuration.
+ */
+var logger = require('./log.js'); // requires winston and configures transports for winstons default logger
+
+/**
  * Connect Mongoose to MongoDB.
  */
 let options = {
@@ -36,11 +41,10 @@ let options = {
 };
 
 mongoose.Promise = bluebird;
-if(process.env.NODE_ENV == 'test') {
-  mongoose.connect(process.env.MONGODBTEST, options);
-} else {
-  mongoose.connect(process.env.MONGODB, options);
-}
+
+let mongoConnectionString = process.env.NODE_ENV === 'test' ? process.env.MONGODBTEST : process.env.MONGODB;
+mongoose.connect(mongoConnectionString, options);
+
 mongoose.connection.on('error', () => {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
   process.exit(1);

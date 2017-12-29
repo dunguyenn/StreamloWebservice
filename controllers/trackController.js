@@ -11,6 +11,7 @@ const { Readable } = require('stream');
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 1, parts: 8 }});
+const logger = require('winston');
 
 exports.getTrackStreamByGridFSId = function(req, res) {
   let trackId;
@@ -191,6 +192,7 @@ function validatePostTrackForm(fields, file) {
   if (!dateUploaded || typeof dateUploaded !== 'string') {
     return { success: false, message: "No dateUploaded in request body." }
   } else if(!moment(dateUploaded, moment.ISO_8601).isValid()) {
+    logger.info('Invalid dateUploaded in request body');
     return { success: false, message: "Invalid dateUploaded in request body." }
   } else if(moment(dateUploaded).isBefore(moment(), 'minute')) {
     return { success: false, message: "Date invalid, it is more then thirty minutes before upload date." }

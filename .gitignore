@@ -1,6 +1,9 @@
 # Dependency directory
 node_modules
 
+# Log directory
+log
+
 # API keys and secrets
 .env
 

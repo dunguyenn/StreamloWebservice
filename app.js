@@ -36,7 +36,11 @@ let options = {
 };
 
 mongoose.Promise = bluebird;
-mongoose.connect(process.env.MONGODB, options);
+if(process.env.NODE_ENV == 'test') {
+  mongoose.connect(process.env.MONGODBTEST, options);
+} else {
+  mongoose.connect(process.env.MONGODB, options);
+}
 mongoose.connection.on('error', () => {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
   process.exit(1);

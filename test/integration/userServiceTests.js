@@ -43,6 +43,16 @@ describe('User Service Integration Tests', function() {
       })
     });
   });
+  
+  after(function(done) {
+    var removeUserPromise = User.findOneAndRemove({ email: "test@hotmail.com" }).exec();
+    removeUserPromise.then(() => {
+      User.findOneAndRemove({ email: "test2@hotmail.com" }, () => {
+        app.close();
+        return done();
+      });
+    });
+  });
 
   describe('Public User Endpoints', function() {
     describe('GET /users', function() {

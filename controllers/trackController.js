@@ -2,6 +2,7 @@ const Track = require('../models/trackModel.js');
 const User = require('../models/userModel.js');
 const _ = require('lodash');
 const moment = require('moment');
+const validator = require('validator');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const mongodb = require('mongodb');
@@ -184,6 +185,8 @@ function validatePostTrackForm(fields, file) {
   }
   if (!trackURL || typeof trackURL !== 'string') {
     return { success: false, message: "No trackURL in request body." }
+  } else if (!validator.isURL(trackURL, { require_tld: false })) {
+    return { success: false, message: "Invalid trackURL in request body." }
   }
   if (!dateUploaded || typeof dateUploaded !== 'string') {
     return { success: false, message: "No dateUploaded in request body." }

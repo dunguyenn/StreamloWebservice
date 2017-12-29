@@ -309,6 +309,25 @@ describe('Track Service Integration Tests', function() {
           .end(done)
       });
       
+      it('retuns status code 400 and correct message with invalid trackURL in body', function(done) {
+        request(app)
+          .post('/tracks')
+          .set('x-access-token', testUserToken)
+          .field('title', 'testTrack')
+          .field('genre', 'Pop')
+          .field('city', 'Belfast')
+          .field('trackURL', 'trackurl with a space in it')
+          .field('dateUploaded', validDate)
+          .field('uploaderId', testUser._id.toString())
+          .field('description', 'testDesc')
+          .attach('track', 'test/littleidea.mp3')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid trackURL in request body.")
+          })
+          .end(done)
+      });
+      
       it('retuns status code 400 and correct message with no date uploaded in body', function(done) {
         request(app)
           .post('/tracks')

@@ -63,24 +63,26 @@ describe('User Service Integration Tests', function() {
           .expect(function(res) {
             assert.isArray(res.body.users);
             assert.lengthOf(res.body.users, 2);
+            res.body.total.should.equal(2);
           })
           .end(done)
       });
       
       it('retuns status code 200 with query string "display_name" set to valid test user displayName. Response should contain array containing each matched user', function(done) {
         request(app)
-          .get('/users?display_name=' + testUser.displayName)
+          .get('/users?display_name=' + testUser.displayName + '&page=0')
           .expect(200)
           .expect(function(res) {
             assert.isArray(res.body.users);
             assert.lengthOf(res.body.users, 2);
+            res.body.total.should.equal(2);
           })
           .end(done)
       });
       
       it('retuns status code 404 with query string "display_name" set to displayName that does not map to a test users displayName.', function(done) {
         request(app)
-          .get('/users?display_name=nonExistentDisplayName')
+          .get('/users?display_name=nonExistentDisplayName&page=0')
           .expect(404)
           .expect(function(res) {
             res.body.message.should.equal("No user associated with requested information");
@@ -90,18 +92,19 @@ describe('User Service Integration Tests', function() {
       
       it('retuns status code 200 with query string "userURL" set to valid test user userURL. Response contain array containing single matched user', function(done) {
         request(app)
-          .get('/users?userURL=' + testUser.userURL)
+          .get('/users?userURL=' + testUser.userURL + '&page=0')
           .expect(200)
           .expect(function(res) {
             assert.isArray(res.body.users);
             assert.lengthOf(res.body.users, 1);
+            res.body.total.should.equal(1);
           })
           .end(done)
       });
       
       it('retuns status code 404 with query string "userURL" that does not map to a test users userURL', function(done) {
         request(app)
-          .get('/users?userURL=nonExistentUserURL')
+          .get('/users?userURL=nonExistentUserURL&page=0')
           .expect(404)
           .expect(function(res) {
             res.body.message.should.equal("No user associated with requested information");
@@ -111,18 +114,19 @@ describe('User Service Integration Tests', function() {
       
       it('retuns status code 200 with query string "userURL" and "display_name" valid and exist on db. Response contain array containing single matched user', function(done) {
         request(app)
-          .get('/users?userURL=' + testUser.userURL + '&display_name=' + testUser.displayName)
+          .get('/users?userURL=' + testUser.userURL + '&display_name=' + testUser.displayName + '&page=0')
           .expect(200)
           .expect(function(res) {
             assert.isArray(res.body.users);
             assert.lengthOf(res.body.users, 1);
+            res.body.total.should.equal(1);
           })
           .end(done)
       });
       
       it('retuns status code 404 with query string "userURL" and "display_name". Neither of which map to a test user', function(done) {
         request(app)
-          .get('/users?userURL=nonExistentUserURL' + '&display_name=nonExistentDisplayName')
+          .get('/users?userURL=nonExistentUserURL' + '&display_name=nonExistentDisplayName' + '&page=0')
           .expect(404)
           .expect(function(res) {
             res.body.message.should.equal("No user associated with requested information");

@@ -48,7 +48,7 @@ exports.getTrackStreamByGridFSId = function(req, res) {
 exports.getTracksByTitle = (req, res) => {
   let response = {};
   var perPage = 5
-  var page = Math.max(0, req.query.page);
+  var page = req.query.page;
 
   var trackTitle = req.query.q;
   var query = Track.find({

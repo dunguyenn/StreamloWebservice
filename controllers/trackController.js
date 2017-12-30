@@ -71,7 +71,7 @@ exports.getTracksByTitle = (req, res) => {
           if (err) {
             res.sendStatus(500);
           } else {
-            response.numMatchingTracks = results;
+            response.total = results;
             res.json(response);
           }
         });
@@ -192,7 +192,7 @@ function validatePostTrackForm(fields, file) {
   if (!dateUploaded || typeof dateUploaded !== 'string') {
     return { success: false, message: "No dateUploaded in request body." }
   } else if(!moment(dateUploaded, moment.ISO_8601).isValid()) {
-    logger.info('Invalid dateUploaded in request body');
+    logger.warn('Invalid dateUploaded in request body');
     return { success: false, message: "Invalid dateUploaded in request body." }
   } else if(moment(dateUploaded).isBefore(moment(), 'minute')) {
     return { success: false, message: "Date invalid, it is more then thirty minutes before upload date." }

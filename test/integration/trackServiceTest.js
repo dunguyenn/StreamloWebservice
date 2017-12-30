@@ -103,7 +103,13 @@ describe('Track Service Integration Tests', function() {
       it('returns status code 200 with valid data', function(done) {
         request(app)
           .get('/tracks?q=little+idea&page=0')
-          .expect(200, done)
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.tracks);
+            assert.lengthOf(res.body.tracks, 1);
+            res.body.total.should.equal(1);
+          })
+          .end(done)
       });
       it('returns status code 404 with non-existent track name', function(done) {
         request(app)

@@ -74,7 +74,6 @@ describe('Track Service Integration Tests', function() {
             { _id: userMongoID }, {
               $push: {
                 "uploadedTracks": {
-                  uploadedTrackId: trackGridFSId,
                   trackID: trackMongoID
                 }
               },

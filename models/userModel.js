@@ -84,9 +84,6 @@ var userSchema = new Schema({
     }
   }],
   uploadedTracks: [{
-    uploadedTrackId: {
-      type: ObjectId
-    },
     trackID: {
       type: ObjectId
     }

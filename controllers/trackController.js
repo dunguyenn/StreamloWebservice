@@ -270,7 +270,6 @@ exports.postTrack = (req, res) => {
             uploderId, {
               $push: {
                 "uploadedTracks": {
-                  uploadedTrackId: trackGridFSId,
                   trackID: track._id
                 }
               },

@@ -99,7 +99,7 @@ describe('Track Service Integration Tests', function() {
   
   describe('Public Track Endpoints', function() {
     describe('GET /tracks', function() {
-      it('returns status code 200 with valid data', function(done) {
+      it('returns status code 200 with valid track title, page number and per_page', function(done) {
         request(app)
           .get('/tracks?q=little+idea&page=1&per_page=5')
           .expect(200)
@@ -147,6 +147,13 @@ describe('Track Service Integration Tests', function() {
       it('returns status code 200 per_page set to number over 10', function(done) {
         request(app)
           .get('/tracks?q=little+idea')
+          .expect(200)
+          .end(done)
+      });
+      
+      it('returns status code 200 with no additional query strings', function(done) {
+        request(app)
+          .get('/tracks')
           .expect(200)
           .end(done)
       });

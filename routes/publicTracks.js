@@ -4,7 +4,7 @@ var trackController = require('../controllers/trackController.js');
 
 // GET all matching tracks by title
 publicTrackRoutes.get('/', function(req, res) {
-  return trackController.getTracksByTitle(req, res);
+  return trackController.getTracks(req, res);
 });
 
 // GET track by trackURL

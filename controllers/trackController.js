@@ -61,7 +61,7 @@ function validateGetTracksByTitleURI(reqQuery) {
   return { success: true };
 }
 
-exports.getTracksByTitle = (req, res) => {
+exports.getTracks = (req, res) => {
   if(!req.query.page) req.query.page = 1;
   if(!req.query.per_page) req.query.per_page = 5;
   
@@ -75,11 +75,14 @@ exports.getTracksByTitle = (req, res) => {
   let response = {};
   let requestedPage = req.query.page;
   let perPage = parseInt(req.query.per_page);
-  
   let trackTitle = req.query.q;
+  
   let query = Track.find({
     title: trackTitle
   });
+  if(!trackTitle) {
+    query = Track.find({});
+  }
 
   query.sort({
       numPlays: 'desc'
@@ -93,7 +96,7 @@ exports.getTracksByTitle = (req, res) => {
         res.sendStatus(404)
       } else {
         response.tracks = results;
-        getNumberOfTracksByTitle(trackTitle, (err, totalNumberMatchingTracks) => {
+        getNumberOfTracks(trackTitle, (err, totalNumberMatchingTracks) => {
           let pageCount = Math.ceil(totalNumberMatchingTracks / perPage);
           if (err) {
             res.sendStatus(500);
@@ -108,10 +111,13 @@ exports.getTracksByTitle = (req, res) => {
     });
 };
 
-let getNumberOfTracksByTitle = (trackTitle, cb) => {
+let getNumberOfTracks = (trackTitle, cb) => {
   let query = Track.count({
     title: trackTitle
   });
+  if(trackTitle == undefined) {
+    query = Track.count({});
+  }
 
   query.exec((err, totalNumberMatchingTracks) => {
     if (err) {

@@ -19,11 +19,11 @@ exports.getUsers = function(req, res) {
   let perPage = 5
   let page = req.query.page;
   
-  let getUsersquery = User.find({});
+  let getUsersQuery = User.find({});
   let countUsersQuery = User.count({});
   
   if(displayName && userURL) {
-    getUsersquery = User.find({
+    getUsersQuery = User.find({
       displayName: displayName,
       userURL: userURL
     });
@@ -33,14 +33,14 @@ exports.getUsers = function(req, res) {
     });
   }
   else if (displayName) {
-    getUsersquery = User.find({
+    getUsersQuery = User.find({
       displayName: displayName
     });
     countUsersQuery = User.count({
       displayName: displayName
     });
   } else if(userURL) {
-    getUsersquery = User.find({
+    getUsersQuery = User.find({
       userURL: userURL
     });
     countUsersQuery = User.count({
@@ -48,7 +48,7 @@ exports.getUsers = function(req, res) {
     });
   }
   
-  getUsersquery.limit(perPage)
+  getUsersQuery.limit(perPage)
     .skip(perPage * page)
     .exec(function(err, results) {
       if (err) {

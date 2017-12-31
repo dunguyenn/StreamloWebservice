@@ -12,44 +12,40 @@ exports.addProfilePictureToUser = function(req, res) {
 };
 
 exports.getUsers = function(req, res) {
+  // Default page to 1 and per_page to 5
+  if(!req.query.page) req.query.page = 1;
+  if(!req.query.per_page) req.query.per_page = 5;
+  
   let response = {};
 
   let displayName = req.query.display_name;
   let userURL = req.query.userURL;
-  let perPage = 5
-  let page = req.query.page;
+  //let perPage = req.query.per_page;
+  let perPage = 5;
+  let requestedPage = req.query.page;
   
-  let getUsersQuery = User.find({});
-  let countUsersQuery = User.count({});
+  let getUsersQueryFilter = {};
+  let countUsersQueryFilter = {};
   
   if(displayName && userURL) {
-    getUsersQuery = User.find({
-      displayName: displayName,
-      userURL: userURL
-    });
-    countUsersQuery = User.count({
-      displayName: displayName,
-      userURL: userURL
-    });
-  }
-  else if (displayName) {
-    getUsersQuery = User.find({
-      displayName: displayName
-    });
-    countUsersQuery = User.count({
-      displayName: displayName
-    });
+    getUsersQueryFilter.displayName = displayName;
+    getUsersQueryFilter.userURL = userURL;
+    
+    countUsersQueryFilter.displayName = displayName;
+    countUsersQueryFilter.userURL = userURL;
+  } else if (displayName) {
+    getUsersQueryFilter.displayName = displayName;
+    countUsersQueryFilter.displayName = displayName;
   } else if(userURL) {
-    getUsersQuery = User.find({
-      userURL: userURL
-    });
-    countUsersQuery = User.count({
-      userURL: userURL
-    });
+    getUsersQueryFilter.userURL = userURL;
+    countUsersQueryFilter.userURL = userURL;
   }
   
+  let getUsersQuery = User.find(getUsersQueryFilter);
+  let countUsersQuery = User.count(countUsersQueryFilter);
+  
   getUsersQuery.limit(perPage)
-    .skip(perPage * page)
+    .skip(perPage * (requestedPage - 1)) // Pagination is 'one-indexed' (pages start at 1). internally zero indexed page is used by mongoose
     .exec(function(err, results) {
       if (err) {
         res.sendStatus(500);

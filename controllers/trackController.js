@@ -45,7 +45,7 @@ exports.getTrackStreamByGridFSId = function(req, res) {
   }
 };
 
-function validateGetTracksByTitleURI(reqQuery) {
+function validateGetTracksRequest(reqQuery) {
   let page = reqQuery.page;
   let perPage = reqQuery.per_page;
 
@@ -62,10 +62,11 @@ function validateGetTracksByTitleURI(reqQuery) {
 }
 
 exports.getTracks = (req, res) => {
+  // Default page to 1 and per_page to 5
   if(!req.query.page) req.query.page = 1;
   if(!req.query.per_page) req.query.per_page = 5;
   
-  const validationResult = validateGetTracksByTitleURI(req.query);
+  const validationResult = validateGetTracksRequest(req.query);
   if (!validationResult.success) {
     return res.status(400).json({
       message: validationResult.message

@@ -45,13 +45,39 @@ exports.getTrackStreamByGridFSId = function(req, res) {
   }
 };
 
-exports.getTracksByTitle = (req, res) => {
-  let response = {};
-  var perPage = 5
-  var page = req.query.page;
+function validateGetTracksByTitleURI(reqQuery) {
+  let page = reqQuery.page;
+  let perPage = reqQuery.per_page;
 
-  var trackTitle = req.query.q;
-  var query = Track.find({
+  if(!Number.isInteger(parseInt(page)) || page - 1 < 0) {
+    return { success: false, message: "Invalid page number. Page numbers start from 1 (one-indexed)"};
+  }
+  if(!Number.isInteger(parseInt(perPage)) || perPage < 1) {
+    return { success: false, message: "Invalid per page number"};
+  } else if(perPage > 10) {
+    return { success: false, message: "Invalid per page number. Maximum number of tracks per page is 10"};
+  }
+
+  return { success: true };
+}
+
+exports.getTracksByTitle = (req, res) => {
+  if(!req.query.page) req.query.page = 1;
+  if(!req.query.per_page) req.query.per_page = 5;
+  
+  const validationResult = validateGetTracksByTitleURI(req.query);
+  if (!validationResult.success) {
+    return res.status(400).json({
+      message: validationResult.message
+    });
+  }
+
+  let response = {};
+  let requestedPage = req.query.page;
+  let perPage = parseInt(req.query.per_page);
+  
+  let trackTitle = req.query.q;
+  let query = Track.find({
     title: trackTitle
   });
 
@@ -59,7 +85,7 @@ exports.getTracksByTitle = (req, res) => {
       numPlays: 'desc'
     })
     .limit(perPage)
-    .skip(perPage * page)
+    .skip(perPage * (requestedPage - 1)) // Pagination is 'one-indexed' (pages start at 1). internally zero indexed page is used by mongoose
     .exec((err, results) => {
       if (err) {
         res.sendStatus(500);
@@ -67,11 +93,14 @@ exports.getTracksByTitle = (req, res) => {
         res.sendStatus(404)
       } else {
         response.tracks = results;
-        getNumberOfTracksByTitle(trackTitle, (err, results) => {
+        getNumberOfTracksByTitle(trackTitle, (err, totalNumberMatchingTracks) => {
+          let pageCount = Math.ceil(totalNumberMatchingTracks / perPage);
           if (err) {
             res.sendStatus(500);
           } else {
-            response.total = results;
+            response.total = totalNumberMatchingTracks;
+            response.page = requestedPage;
+            response.pageCount = pageCount;
             res.json(response);
           }
         });
@@ -84,11 +113,11 @@ let getNumberOfTracksByTitle = (trackTitle, cb) => {
     title: trackTitle
   });
 
-  query.exec((err, results) => {
+  query.exec((err, totalNumberMatchingTracks) => {
     if (err) {
       cb(err);
     } else {
-      cb(null, results);
+      cb(null, totalNumberMatchingTracks);
     }
   });
 };

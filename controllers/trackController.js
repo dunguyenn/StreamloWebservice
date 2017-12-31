@@ -57,7 +57,6 @@ function validateGetTracksRequest(reqQuery) {
   } else if(perPage > 10) {
     return { success: false, message: "Invalid per page number. Maximum number of tracks per page is 10"};
   }
-
   return { success: true };
 }
 
@@ -74,7 +73,7 @@ exports.getTracks = (req, res) => {
   }
 
   let response = {};
-  let requestedPage = req.query.page;
+  let requestedPage = parseInt(req.query.page);
   let perPage = parseInt(req.query.per_page);
   let trackTitle = req.query.q;
   
@@ -98,14 +97,14 @@ exports.getTracks = (req, res) => {
       } else {
         response.tracks = results;
         getNumberOfTracks(trackTitle, (err, totalNumberMatchingTracks) => {
-          let pageCount = Math.ceil(totalNumberMatchingTracks / perPage);
           if (err) {
             res.sendStatus(500);
           } else {
+            let pageCount = Math.ceil(totalNumberMatchingTracks / perPage);
             response.total = totalNumberMatchingTracks;
             response.page = requestedPage;
             response.pageCount = pageCount;
-            res.json(response);
+            res.status(200).json(response);
           }
         });
       }

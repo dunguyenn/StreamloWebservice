@@ -56,7 +56,7 @@ describe('User Service Integration Tests', function() {
 
   describe('Public User Endpoints', function() {
     describe('GET /users', function() {
-      it('retuns status code 200 and all users on system when no additional query strings provided', function(done) {
+      it('returns status code 200 and all users on system when no additional query strings provided', function(done) {
         request(app)
           .get('/users')
           .expect(200)
@@ -64,11 +64,57 @@ describe('User Service Integration Tests', function() {
             assert.isArray(res.body.users);
             assert.lengthOf(res.body.users, 2);
             res.body.total.should.equal(2);
+            res.body.page.should.equal(1);
+            res.body.pageCount.should.equal(1);
           })
           .end(done)
       });
       
-      it('retuns status code 200 with query string "display_name" set to valid test user displayName. Response should contain array containing each matched user', function(done) {
+      it('returns status code 200 and page of 5 users with query strings page = 1 and per_page = 5', function(done) {
+        request(app)
+          .get('/users?page=1&per_page=5')
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.users);
+            assert.lengthOf(res.body.users, 2);
+            res.body.total.should.equal(2);
+            res.body.page.should.equal(1);
+            res.body.pageCount.should.equal(1);
+          })
+          .end(done)
+      });
+      
+      it('returns status code 400 with per_page query string set to number over 10', function(done) {
+        request(app)
+          .get('/users?page=1&per_page=11')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid per page number. Maximum number of tracks per page is 10");
+          })
+          .end(done)
+      });
+      
+      it('returns status code 400 with per_page query string set to 0', function(done) {
+        request(app)
+          .get('/users?page=1&per_page=0')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid per page number");
+          })
+          .end(done)
+      });
+      
+      it('returns status code 400 with page query string set to 0', function(done) {
+        request(app)
+          .get('/users?page=0&per_page=5')
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid page number. Page numbers start from 1 (one-indexed)");
+          })
+          .end(done)
+      });
+      
+      it('returns status code 200 with query string "display_name" set to valid test user displayName. Response should contain array containing each matched user', function(done) {
         request(app)
           .get('/users?display_name=' + testUser.displayName + '&page=1')
           .expect(200)
@@ -80,7 +126,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 404 with query string "display_name" set to displayName that does not map to a test users displayName.', function(done) {
+      it('returns status code 404 with query string "display_name" set to displayName that does not map to a test users displayName.', function(done) {
         request(app)
           .get('/users?display_name=nonExistentDisplayName&page=1')
           .expect(404)
@@ -90,7 +136,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 200 with query string "userURL" set to valid test user userURL. Response contain array containing single matched user', function(done) {
+      it('returns status code 200 with query string "userURL" set to valid test user userURL. Response contain array containing single matched user', function(done) {
         request(app)
           .get('/users?userURL=' + testUser.userURL + '&page=1')
           .expect(200)
@@ -102,7 +148,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 404 with query string "userURL" that does not map to a test users userURL', function(done) {
+      it('returns status code 404 with query string "userURL" that does not map to a test users userURL', function(done) {
         request(app)
           .get('/users?userURL=nonExistentUserURL&page=1')
           .expect(404)
@@ -112,7 +158,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 200 with query string "userURL" and "display_name" valid and exist on db. Response contain array containing single matched user', function(done) {
+      it('returns status code 200 with query string "userURL" and "display_name" valid and exist on db. Response contain array containing single matched user', function(done) {
         request(app)
           .get('/users?userURL=' + testUser.userURL + '&display_name=' + testUser.displayName + '&page=1')
           .expect(200)
@@ -124,7 +170,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 404 with query string "userURL" and "display_name". Neither of which map to a test user', function(done) {
+      it('returns status code 404 with query string "userURL" and "display_name". Neither of which map to a test user', function(done) {
         request(app)
           .get('/users?userURL=nonExistentUserURL' + '&display_name=nonExistentDisplayName' + '&page=1')
           .expect(404)
@@ -136,7 +182,7 @@ describe('User Service Integration Tests', function() {
     });
     
     describe('GET /users/:id', function() {
-      it('retuns status code 200 when userID requested maps to user on database. Response should contain array containing single matched user', function(done) {
+      it('returns status code 200 when userID requested maps to user on database. Response should contain array containing single matched user', function(done) {
         request(app)
           .get('/users/' + testUser._id)
           .expect(200)
@@ -147,7 +193,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 400 with correct message when invalid mongo objectID requested', function(done) {
+      it('returns status code 400 with correct message when invalid mongo objectID requested', function(done) {
         const invalidMongoID = "123"
         request(app)
           .get('/users/' + invalidMongoID)
@@ -158,7 +204,7 @@ describe('User Service Integration Tests', function() {
           .end(done)
       });
       
-      it('retuns status code 404 with correct message when requested userID does not map to a user on the system', function(done) {
+      it('returns status code 404 with correct message when requested userID does not map to a user on the system', function(done) {
         const mongoIDThatDoesNotMapToATestUser = "5a2d83d81b815cd644df5568"
         request(app)
           .get('/users/' + mongoIDThatDoesNotMapToATestUser)
@@ -173,7 +219,7 @@ describe('User Service Integration Tests', function() {
   
   describe('Protected User Endpoints', function() {
     describe('POST users/:userURL/addProfilePicture', function() {
-      it.skip('retuns status code 200 with valid data', function(done) {
+      it.skip('returns status code 200 with valid data', function(done) {
         
       });
       

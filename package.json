@@ -8,8 +8,9 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon -x 'cross-env NODE_ENV=test npm run test || true && cross-env NODE_ENV=development node app.js'",
-    "test": "echo 'Starting Tests\n' && nyc mocha -c -R spec test/integration test/unit && echo 'Finished Tests\n'",
+    "start": "nodemon -x 'cross-env NODE_ENV=test npm run -s test || true && cross-env NODE_ENV=development node app.js'",
+    "test": "echo 'Starting Tests 🔬' && nyc mocha -c -R spec test/integration test/unit && echo '\nFinished Tests 🔬\n' && npm run -s codeFormat",
+    "codeFormat": "echo 'Starting Code Formatting 💅\n' && prettier --config .prettierrc --loglevel silent --write '**/*.js' && echo '\nFinished Code Formatting 💅\n'",
     "ci": "cross-env NODE_ENV=test npm run test -s"
   },
   "author": "",
@@ -43,6 +44,7 @@
     "mocha": "^2.5.3",
     "nodemon": "^1.12.1",
     "nyc": "^11.2.1",
+    "prettier": "1.9.2",
     "rewire": "^2.5.2",
     "supertest": "^3.0.0"
   }

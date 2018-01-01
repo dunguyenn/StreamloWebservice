@@ -87,6 +87,10 @@ app.use("/users", usersRouter);
 app.use("/users", protectedUsersRouter);
 app.use("/auth", authRouter);
 
-var server = app.listen(app.get("port"));
+var server = app.listen(app.get("port"), () => {
+  if (process.env.NODE_ENV !== "test") {
+    console.log("Streamlo Webservice listening on port " + app.get("port") + "!");
+  }
+});
 
 module.exports = server;

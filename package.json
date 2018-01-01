@@ -10,7 +10,7 @@
   "scripts": {
     "start": "nodemon -x 'cross-env NODE_ENV=test npm run test || true && cross-env NODE_ENV=development node app.js'",
     "test": "echo 'Starting Tests\n' && nyc mocha -c -R spec test/integration test/unit && echo 'Finished Tests\n'",
-    "ci": "npm run test -s"
+    "ci": "cross-env NODE_ENV=test npm run test -s"
   },
   "author": "",
   "license": "ISC",

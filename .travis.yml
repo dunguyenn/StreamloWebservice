@@ -21,7 +21,7 @@ install:
   - npm install
 
 before_script:
-  # Known travis issue - https://docs.travis-ci.com/user/database-setup/#MongoDB-does-not-immediately-accept-connections
+  # Artificial wait: Known travis issue - https://docs.travis-ci.com/user/database-setup/#MongoDB-does-not-immediately-accept-connections
   - sleep 15
 
 script:

@@ -260,11 +260,6 @@ exports.postTrack = (req, res) => {
     let trackTitle = req.body.title;
     let uploderId = req.body.uploaderId;
 
-    // Covert buffer to Readable Stream
-    const readableTrackStream = new Readable();
-    readableTrackStream.push(req.file.buffer);
-    readableTrackStream.push(null);
-
     let db = mongoose.connection.db;
     let bucket = new mongodb.GridFSBucket(db, {
       bucketName: "trackBinaryFiles"
@@ -272,38 +267,41 @@ exports.postTrack = (req, res) => {
 
     let uploadStream = bucket.openUploadStream(trackTitle, { contentType: "audio/mp3" });
     let trackGridFSId = uploadStream.id;
-    readableTrackStream.pipe(uploadStream);
 
-    uploadStream.on("error", () => {
-      res.status(500).json({ message: "Error uploading file" });
+    var track = new Track({
+      title: req.body.title,
+      genre: req.body.genre,
+      city: req.body.city,
+      trackURL: req.body.trackURL,
+      dateUploaded: req.body.dateUploaded,
+      uploaderId: req.body.uploaderId,
+      description: req.body.description,
+      trackBinaryId: trackGridFSId
     });
 
-    uploadStream.on("finish", () => {
-      var track = new Track({
-        title: req.body.title,
-        genre: req.body.genre,
-        city: req.body.city,
-        trackURL: req.body.trackURL,
-        dateUploaded: req.body.dateUploaded,
-        uploaderId: req.body.uploaderId,
-        description: req.body.description,
-        trackBinaryId: trackGridFSId
-      });
+    track.save(function(err, track) {
+      if (err) {
+        switch (err.message) {
+          case "No User associated with uploaderID":
+            res.status(400).json({ message: "No User account associated with uploaderID" });
+            break;
+          default:
+            res.status(500).json({ message: "Error uploading file" });
+        }
+      } else {
+        // If track document saves successfully, attempt to stream track from buffer to gridfs
+        // Covert buffer to Readable Stream
+        const readableTrackStream = new Readable();
+        readableTrackStream.push(req.file.buffer);
+        readableTrackStream.push(null);
+        readableTrackStream.pipe(uploadStream);
 
-      track.save(function(err, track) {
-        // Attempt to save track
-        if (err) {
-          // In event of failed track save remove gridfs file
-          bucket.delete(trackGridFSId);
-          switch (err.message) {
-            case "No User associated with uploaderID":
-              res.status(400).json({ message: "No User account associated with uploaderID" });
-              break;
-            default:
-              res.status(500).json({ message: "Error uploading file" });
-          }
-        } else {
-          // If track model saves, update uploaders user model
+        uploadStream.on("error", () => {
+          res.status(500).json({ message: "Error uploading file" });
+        });
+
+        uploadStream.on("finish", () => {
+          // If track piped to gridFS successfully, attempt to update user model
           User.findByIdAndUpdate(
             uploderId,
             {
@@ -316,21 +314,23 @@ exports.postTrack = (req, res) => {
                 numberOfTracksUploaded: 1
               }
             },
-            function(err) {
+            err => {
               if (err) {
-                // If uploaders user model fails to update, remove uploaded track from gridfs
-                bucket.delete(trackGridFSId);
-                res.status(500).json({ message: "Error uploading file" });
+                // If uploaders user document fails to update, delete track document
+                // && Delete track file from gridFS (handled by TrackModel middleware)
+                Track.findOneAndRemove({ _id: track._id }, err => {
+                  res.status(500).json({ message: "Error uploading file" });
+                });
               }
             }
           );
-          let message = {
-            message: "File uploaded successfully",
-            trackBinaryId: track.id
-          };
-          res.status(201).json(message);
-        }
-      });
+        });
+        let message = {
+          message: "File uploaded successfully",
+          trackBinaryId: track.id
+        };
+        res.status(201).json(message);
+      }
     });
   });
 };

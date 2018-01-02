@@ -376,6 +376,26 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
+      it("retuns status code 400 and correct message with duplicate trackURL in body", function(done) {
+        var uploaderIDThatDoesNotMapToAnyTestUser = "5b2d83d81b815cd644df5468";
+        request(app)
+          .post("/tracks")
+          .set("x-access-token", testUserToken)
+          .field("title", "testTrack")
+          .field("genre", "Pop")
+          .field("city", "Belfast")
+          .field("trackURL", "test123")
+          .field("dateUploaded", validDate)
+          .field("uploaderId", uploaderIDThatDoesNotMapToAnyTestUser)
+          .field("description", "testDesc")
+          .attach("track", "test/littleidea.mp3")
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("No User account associated with uploaderID");
+          })
+          .end(done);
+      });
+
       it("retuns status code 400 and correct message with no date uploaded in body", function(done) {
         request(app)
           .post("/tracks")

@@ -8,15 +8,16 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon -x 'npm run test || true && node app.js'",
-    "build": "nodemon -x 'node app.js'",
-    "test": "echo 'Starting Tests\n' && nyc mocha -c -R spec test/integration test/unit && echo 'Finished Tests\n'",
-    "ci": "npm run test -s"
+    "start": "nodemon -x 'cross-env NODE_ENV=test npm run -s test || true && cross-env NODE_ENV=development node app.js'",
+    "test": "echo 'Starting Tests 🔬' && nyc mocha -c -R spec test/integration test/unit && echo '\nFinished Tests 🔬\n' && npm run -s codeFormat",
+    "codeFormat": "echo 'Starting Code Formatting 💅\n' && prettier --config .prettierrc --loglevel silent --write '**/*.js' && echo '\nFinished Code Formatting 💅\n'",
+    "ci": "cross-env NODE_ENV=test npm run test -s"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^1.0.2",
+    "bluebird": "^3.5.1",
     "body-parser": "^1.15.0",
     "compression": "^1.7.1",
     "cors": "^2.8.1",
@@ -31,15 +32,19 @@
     "multer": "^1.1.0",
     "passport": "^0.3.0",
     "passport-local": "^1.0.0",
-    "validator": "^5.7.0"
+    "validator": "^5.7.0",
+    "winston": "^2.4.0",
+    "winston-daily-rotate-file": "^1.7.2"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "concurrently": "^3.5.0",
+    "cross-env": "^5.1.3",
     "dotenv": "^4.0.0",
     "mocha": "^2.5.3",
     "nodemon": "^1.12.1",
     "nyc": "^11.2.1",
+    "prettier": "1.9.2",
     "rewire": "^2.5.2",
     "supertest": "^3.0.0"
   }

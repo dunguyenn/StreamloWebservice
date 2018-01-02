@@ -1,141 +1,111 @@
-var User = require('../models/userModel.js');
-var mongoose = require('mongoose');
-var fs = require('fs');
-var conn = mongoose.connection;
+const User = require("../models/userModel.js");
+const mongodb = require("mongodb");
+const ObjectID = require("mongodb").ObjectID;
+const mongoose = require("mongoose");
+const fs = require("fs");
+const conn = mongoose.connection;
+const _ = require("lodash");
 
-exports.getUsersByDisplayName = function(req, res) {
+// TODO implement addProfilePictureToUser function
+exports.addProfilePictureToUser = function(req, res) {};
+
+function validateGetUsersRequest(reqQuery) {
+  let page = reqQuery.page;
+  let perPage = reqQuery.per_page;
+
+  if (!Number.isInteger(parseInt(page)) || page - 1 < 0) {
+    return { success: false, message: "Invalid page number. Page numbers start from 1 (one-indexed)" };
+  }
+  if (!Number.isInteger(parseInt(perPage)) || perPage < 1) {
+    return { success: false, message: "Invalid per page number" };
+  } else if (perPage > 10) {
+    return { success: false, message: "Invalid per page number. Maximum number of tracks per page is 10" };
+  }
+  return { success: true };
+}
+
+exports.getUsers = function(req, res) {
+  // Default page to 1 and per_page to 5
+  if (!req.query.page) req.query.page = 1;
+  if (!req.query.per_page) req.query.per_page = 5;
+
+  const validationResult = validateGetUsersRequest(req.query);
+  if (!validationResult.success) {
+    return res.status(400).json({
+      message: validationResult.message
+    });
+  }
+
   let response = {};
-  var perPage = 5
-  var page = Math.max(0, req.query.page);
-  var requestedDisplayname = req.query.q;
+  let displayName = req.query.display_name;
+  let userURL = req.query.userURL;
+  let perPage = parseInt(req.query.per_page);
+  let requestedPage = parseInt(req.query.page);
 
-  var query = User.find({
-    displayName: requestedDisplayname
-  });
+  let getUsersQueryFilter = {};
+  let countUsersQueryFilter = {};
 
-  query.limit(5)
-    .skip(perPage * page)
-    .exec((err, results) => {
+  if (displayName && userURL) {
+    getUsersQueryFilter.displayName = displayName;
+    getUsersQueryFilter.userURL = userURL;
+
+    countUsersQueryFilter.displayName = displayName;
+    countUsersQueryFilter.userURL = userURL;
+  } else if (displayName) {
+    getUsersQueryFilter.displayName = displayName;
+    countUsersQueryFilter.displayName = displayName;
+  } else if (userURL) {
+    getUsersQueryFilter.userURL = userURL;
+    countUsersQueryFilter.userURL = userURL;
+  }
+
+  let getUsersQuery = User.find(getUsersQueryFilter);
+  let countUsersQuery = User.count(countUsersQueryFilter);
+
+  getUsersQuery
+    .limit(perPage)
+    .skip(perPage * (requestedPage - 1)) // Pagination is 'one-indexed' (pages start at 1). internally zero indexed page is used by mongoose
+    .exec(function(err, results) {
       if (err) {
         res.sendStatus(500);
+      } else if (_.isEmpty(results)) {
+        res.status(404).json({ message: "No user associated with requested information" });
       } else {
         response.users = results;
-        getNumberOfMatchingUsersByDisplayName(requestedDisplayname, (err, results) => {
+        countUsersQuery.exec(function(err, totalNumberMatchingUsers) {
           if (err) {
             res.sendStatus(500);
           } else {
-            response.numMatchingUsers = results;
-            res.json(response);
+            let pageCount = Math.ceil(totalNumberMatchingUsers / perPage);
+            response.total = totalNumberMatchingUsers;
+            response.page = requestedPage;
+            response.pageCount = pageCount;
+            res.status(200).json(response);
           }
         });
       }
     });
 };
 
-let getNumberOfMatchingUsersByDisplayName = (displayName, cb) => {
-  var query = User.count({
-    displayName: displayName
-  });
-
-  query.exec(function(err, results) {
-    if (err)
-      cb(err);
-    else
-      cb(null, results);
-  });
-}
-
-exports.getNumberOfMatchingUsersByDisplayName = function(req, res) {
-  var displayName = req.query.q;
-  var query = User.count({
-    displayName: displayName
-  });
-
-  query.exec(function(err, results) {
-    if (err)
-      res.sendStatus(500);
-    else
-      res.json(results);
-  });
-};
-
-// TODO get this is working
-exports.addProfilePictureToUser = function(req, res) {
-  // var uploadedFileId;
-  // 
-  // var fileName = req.body.userURL;
-  // var filePath = req.file.path;
-  // var filetype = req.file.mimetype;
-  // 
-  // var gfs = grid(conn.db);
-  // 
-  // // Streaming to gridfs
-  // // Filename to store in mongodb
-  // var writestream = gfs.createWriteStream({
-  //   filename: fileName,
-  //   content_type: 'image/jpeg'
-  // });
-  // fs.createReadStream(filePath).pipe(writestream);
-  // 
-  // writestream.on('close', function(file) {
-  //   uploadedFileId = file._id;
-  //   
-  //   var query = User.update({
-  //     trackURL: req.body.userURL
-  //   }, {
-  //     profilePictureBinary: uploadedFileId
-  //   });
-  // 
-  //   query.exec(function(err) {
-  //     if (err) {
-  //       gfs.remove({
-  //         _id: uploadedFileId
-  //       }, function(gfserr) {
-  //         if (gfserr) {
-  //           console.log("error removing gridfs file");
-  //         }
-  //         console.log('Removed gridfs file after unsuccessful db update');
-  //       });
-  //       fs.unlink(filePath);
-  //       res.status(500).send(err);
-  //     } else {
-  //       fs.unlink(filePath);
-  //       res.sendStatus(200);
-  //     }
-  //   });
-  // });
-};
-
-exports.getUserByURL = function(req, res) {
-  var userURL = req.params.userURL;
-  var query = User.findOne({
-    userURL: userURL
-  });
-
-  query.exec(function(err, results) {
-    if (err) {
-      res.sendStatus(500);
-    } else if(!results) {
-      res.sendStatus(204);
-    } else {
-      res.json(results);
-    }
-  });
-}
-
 exports.getUserById = function(req, res) {
-  var userId = req.params.userId;
-  var query = User.findOne({
-    _id: userId
-  });
+  let userId = req.params.userId;
+  if (!ObjectID.isValid(userId)) {
+    res.status(400).json({ message: "Invalid userID" });
+  } else {
+    let query = User.find({
+      _id: userId
+    });
 
-  query.exec(function(err, results) {
-    if (err) {
-      res.sendStatus(500);
-    } else if(!results) {
-      res.sendStatus(204);
-    } else {
-      res.json(results);
-    }
-  });
+    query.exec(function(err, results) {
+      if (err) {
+        res.sendStatus(500);
+      } else if (_.isEmpty(results)) {
+        res.status(404).json({ message: "No user associated with requested userID" });
+      } else {
+        res.status(200).json({
+          users: results
+        });
+      }
+    });
+  }
 };

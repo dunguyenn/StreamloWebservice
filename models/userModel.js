@@ -1,6 +1,6 @@
-var mongoose = require('mongoose');
-var validator = require('validator');
-var bcrypt = require('bcrypt');
+var mongoose = require("mongoose");
+var validator = require("validator");
+var bcrypt = require("bcrypt");
 var Schema = mongoose.Schema;
 const SALT_WORK_FACTOR = 10;
 
@@ -10,12 +10,12 @@ var emailAddressValidator = [
     return validator.isEmail(val);
   },
   // Customer error text...
-  'Enter a valid email address.'
+  "Enter a valid email address."
 ];
 
 // Custom emunerations
 var cityEnu = {
-  values: "Belfast Derry".split(' '),
+  values: "Belfast Derry".split(" "),
   message: "City validation failed"
 };
 
@@ -24,7 +24,7 @@ function toLower(val) {
 }
 
 var ObjectId = Schema.Types.ObjectId;
-var userModel = new Schema({
+var userSchema = new Schema({
   email: {
     type: String,
     required: true,
@@ -73,24 +73,30 @@ var userModel = new Schema({
   profilePictureBinary: {
     type: ObjectId
   },
-  likedTracks: [{
-    likedTrack: {
-      type: ObjectId
+  likedTracks: [
+    {
+      likedTrack: {
+        type: ObjectId
+      }
     }
-  }],
-  followedUsers: [{
-    followedUser: {
-      type: ObjectId
+  ],
+  followedUsers: [
+    {
+      followedUser: {
+        type: ObjectId
+      }
     }
-  }],
-  uploadedTracks: [{
-    uploadedTrackId: {
-      type: ObjectId
+  ],
+  uploadedTracks: [
+    {
+      trackID: {
+        type: ObjectId
+      }
     }
-  }]
+  ]
 });
 
-userModel.methods.comparePassword = function(candidatePassword, cb) {
+userSchema.methods.comparePassword = function(candidatePassword, cb) {
   bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
     if (err) return cb(err);
     cb(null, isMatch);
@@ -98,11 +104,11 @@ userModel.methods.comparePassword = function(candidatePassword, cb) {
 };
 
 // The pre-save hook method.
-userModel.pre('save', function saveHook(next) {
+userSchema.pre("save", function saveHook(next) {
   const user = this;
 
   // proceed further only if the password is modified or the user is new
-  if (!user.isModified('password')) return next();
+  if (!user.isModified("password")) return next();
 
   // Generate a salt
   return bcrypt.genSalt(SALT_WORK_FACTOR, (saltError, salt) => {
@@ -124,4 +130,20 @@ userModel.pre('save', function saveHook(next) {
   });
 });
 
-module.exports = mongoose.model('user', userModel);
+// after removal of a user, also remove of the users uploaded tracks
+userSchema.post("findOneAndRemove", function(doc) {
+  const Track = require("../models/trackModel.js");
+
+  if (doc == null || doc.uploadedTracks === undefined || doc.uploadedTracks.length == 0) {
+    // array empty or does not exist
+    return;
+  } else {
+    doc.uploadedTracks.forEach((track, index, array) => {
+      Track.findOneAndRemove({ _id: track.trackID }, function(err) {
+        return;
+      });
+    });
+  }
+});
+
+module.exports = mongoose.model("user", userSchema);

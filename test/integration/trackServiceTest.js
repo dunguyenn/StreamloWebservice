@@ -105,7 +105,7 @@ describe("Track Service Integration Tests", function() {
     describe("GET /tracks", function() {
       it("returns status code 200 with valid track title, page number and per_page", function(done) {
         request(app)
-          .get("/tracks?q=little+idea&page=1&per_page=5")
+          .get("/tracks?title=little+idea&page=1&per_page=5")
           .expect(200)
           .expect(function(res) {
             assert.isArray(res.body.tracks);
@@ -115,9 +115,22 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
+      it("returns status code 200 with valid track title, trackURL, page number and per_page", function(done) {
+        request(app)
+          .get("/tracks?title=little+idea&trackURL=testurl&page=1&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.tracks);
+            assert.lengthOf(res.body.tracks, 1);
+            res.body.tracks[0].trackURL.should.equal("testurl");
+            res.body.total.should.equal(1);
+          })
+          .end(done);
+      });
+
       it("returns status code 400 when per_page set to less then 1", function(done) {
         request(app)
-          .get("/tracks?q=little+idea&page=1&per_page=0")
+          .get("/tracks?title=little+idea&page=1&per_page=0")
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Invalid per page number");
@@ -127,7 +140,7 @@ describe("Track Service Integration Tests", function() {
 
       it("returns status code 400 when page set to 0", function(done) {
         request(app)
-          .get("/tracks?q=little+idea&page=0&per_page=5")
+          .get("/tracks?title=little+idea&page=0&per_page=5")
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Invalid page number. Page numbers start from 1 (one-indexed)");
@@ -137,20 +150,20 @@ describe("Track Service Integration Tests", function() {
 
       it("returns status code 404 with non-existent track name", function(done) {
         request(app)
-          .get("/tracks?q=nonExistentTrack&page=1&per_page=5")
+          .get("/tracks?title=nonExistentTrack&page=1&per_page=5")
           .expect(404, done);
       });
 
       it("returns status code 200 with track name and no additional query strings", function(done) {
         request(app)
-          .get("/tracks?q=little+idea")
+          .get("/tracks?title=little+idea")
           .expect(200)
           .end(done);
       });
 
       it("returns status code 200 per_page set to number over 10", function(done) {
         request(app)
-          .get("/tracks?q=little+idea")
+          .get("/tracks?title=little+idea")
           .expect(200)
           .end(done);
       });
@@ -159,24 +172,6 @@ describe("Track Service Integration Tests", function() {
         request(app)
           .get("/tracks")
           .expect(200)
-          .end(done);
-      });
-    });
-
-    describe("GET /tracks/:trackURL", function() {
-      it("returns status code 200 with valid data", function(done) {
-        request(app)
-          .get("/tracks/" + testTrack.trackURL)
-          .expect(200)
-          .end(done);
-      });
-      it("returns status code 404 with non-existent track name", function(done) {
-        request(app)
-          .get("/tracks?q=little+idea&page=1&per_page=11")
-          .expect(400)
-          .expect(function(res) {
-            res.body.message.should.equal("Invalid per page number. Maximum number of tracks per page is 10");
-          })
           .end(done);
       });
     });

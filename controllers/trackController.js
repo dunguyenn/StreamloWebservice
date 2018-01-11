@@ -60,6 +60,8 @@ function validateGetTracksRequest(reqQuery) {
   return { success: true };
 }
 
+function determineMongooseQueryFilter() {}
+
 exports.getTracks = (req, res) => {
   // Default page to 1 and per_page to 5
   if (!req.query.page) req.query.page = 1;
@@ -75,16 +77,20 @@ exports.getTracks = (req, res) => {
   let response = {};
   let requestedPage = parseInt(req.query.page);
   let perPage = parseInt(req.query.per_page);
-  let trackTitle = req.query.q;
+  let trackTitle = req.query.title;
+  let trackURL = req.query.trackURL;
 
-  let query = Track.find({
-    title: trackTitle
-  });
-  if (!trackTitle) {
-    query = Track.find({});
+  let mongooseQueryFilter = {}; // default no filter (find all)
+  if (trackTitle && trackURL) {
+    // if both trackTitle && trackURL query strings present filter for both
+    mongooseQueryFilter = { title: trackTitle, trackURL: trackURL };
+  } else if (trackTitle) {
+    mongooseQueryFilter = { title: trackTitle };
+  } else if (trackURL) {
+    mongooseQueryFilter = { trackURL: trackURL };
   }
 
-  query
+  Track.find(mongooseQueryFilter)
     .sort({
       numPlays: "desc"
     })
@@ -94,10 +100,10 @@ exports.getTracks = (req, res) => {
       if (err) {
         res.sendStatus(500);
       } else if (_.isEmpty(results)) {
-        res.sendStatus(404);
+        res.status(404).json({ message: "Unable to find track" });
       } else {
         response.tracks = results;
-        getNumberOfTracks(trackTitle, (err, totalNumberMatchingTracks) => {
+        getNumberOfTracks(mongooseQueryFilter, (err, totalNumberMatchingTracks) => {
           if (err) {
             res.sendStatus(500);
           } else {
@@ -112,14 +118,8 @@ exports.getTracks = (req, res) => {
     });
 };
 
-let getNumberOfTracks = (trackTitle, cb) => {
-  let query = Track.count({
-    title: trackTitle
-  });
-  if (trackTitle == undefined) {
-    query = Track.count({});
-  }
-
+let getNumberOfTracks = (mongooseQueryFilter, cb) => {
+  let query = Track.count(mongooseQueryFilter);
   query.exec((err, totalNumberMatchingTracks) => {
     if (err) {
       cb(err);
@@ -149,24 +149,6 @@ exports.getTracksByUploaderId = function(req, res) {
       }
     });
   }
-};
-
-exports.getTrackByURL = function(req, res) {
-  var trackURL = req.params.trackURL;
-  var query = Track.findOne({
-    trackURL: trackURL
-  });
-
-  query.exec(function(err, results) {
-    if (err) res.sendStatus(500);
-    else if (_.isEmpty(results)) {
-      res.status(404).json({
-        message: "No track found with this trackURL"
-      });
-    } else {
-      res.json(results);
-    }
-  });
 };
 
 exports.getChartOfCity = function(req, res) {

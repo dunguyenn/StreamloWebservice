@@ -60,7 +60,21 @@ function validateGetTracksRequest(reqQuery) {
   return { success: true };
 }
 
-function determineMongooseQueryFilter() {}
+function determineMongooseQueryFilter(queryStrings) {
+  let trackTitle = queryStrings.title;
+  let trackURL = queryStrings.trackURL;
+
+  let mongooseQueryFilter = {}; // default no filter (find all)
+
+  if (trackTitle && trackURL) {
+    // if both trackTitle && trackURL query strings present filter for both
+    return (mongooseQueryFilter = { title: trackTitle, trackURL: trackURL });
+  } else if (trackTitle) {
+    return (mongooseQueryFilter = { title: trackTitle });
+  } else if (trackURL) {
+    return (mongooseQueryFilter = { trackURL: trackURL });
+  }
+}
 
 exports.getTracks = (req, res) => {
   // Default page to 1 and per_page to 5
@@ -77,18 +91,8 @@ exports.getTracks = (req, res) => {
   let response = {};
   let requestedPage = parseInt(req.query.page);
   let perPage = parseInt(req.query.per_page);
-  let trackTitle = req.query.title;
-  let trackURL = req.query.trackURL;
 
-  let mongooseQueryFilter = {}; // default no filter (find all)
-  if (trackTitle && trackURL) {
-    // if both trackTitle && trackURL query strings present filter for both
-    mongooseQueryFilter = { title: trackTitle, trackURL: trackURL };
-  } else if (trackTitle) {
-    mongooseQueryFilter = { title: trackTitle };
-  } else if (trackURL) {
-    mongooseQueryFilter = { trackURL: trackURL };
-  }
+  let mongooseQueryFilter = determineMongooseQueryFilter(req.query);
 
   Track.find(mongooseQueryFilter)
     .sort({

@@ -45,9 +45,10 @@ exports.getTrackStreamByGridFSId = function(req, res) {
   }
 };
 
-function validateGetTracksRequest(reqQuery) {
-  let page = reqQuery.page;
-  let perPage = reqQuery.per_page;
+function validateGetTracksRequest(queryStrings) {
+  let page = queryStrings.page;
+  let perPage = queryStrings.per_page;
+  let uploaderId = queryStrings.uploaderId;
 
   if (!Number.isInteger(parseInt(page)) || page - 1 < 0) {
     return { success: false, message: "Invalid page number. Page numbers start from 1 (one-indexed)" };
@@ -57,23 +58,32 @@ function validateGetTracksRequest(reqQuery) {
   } else if (perPage > 10) {
     return { success: false, message: "Invalid per page number. Maximum number of tracks per page is 10" };
   }
+  if (uploaderId) {
+    if (!ObjectID.isValid(uploaderId)) {
+      return { success: false, message: "Invalid uploaderId" };
+    }
+  }
   return { success: true };
 }
 
 function determineMongooseQueryFilter(queryStrings) {
-  let trackTitle = queryStrings.title;
-  let trackURL = queryStrings.trackURL;
-
   let mongooseQueryFilter = {}; // default no filter (find all)
 
-  if (trackTitle && trackURL) {
-    // if both trackTitle && trackURL query strings present filter for both
-    return (mongooseQueryFilter = { title: trackTitle, trackURL: trackURL });
-  } else if (trackTitle) {
-    return (mongooseQueryFilter = { title: trackTitle });
-  } else if (trackURL) {
-    return (mongooseQueryFilter = { trackURL: trackURL });
+  for (var queryString in queryStrings) {
+    switch (queryString) {
+      case "title":
+        Object.assign(mongooseQueryFilter, { title: queryStrings.title });
+        break;
+      case "trackURL":
+        Object.assign(mongooseQueryFilter, { trackURL: queryStrings.trackURL });
+        break;
+      case "uploaderId":
+        Object.assign(mongooseQueryFilter, { uploaderId: queryStrings.uploaderId });
+        break;
+      default:
+    }
   }
+  return mongooseQueryFilter;
 }
 
 exports.getTracks = (req, res) => {
@@ -131,28 +141,6 @@ let getNumberOfTracks = (mongooseQueryFilter, cb) => {
       cb(null, totalNumberMatchingTracks);
     }
   });
-};
-
-exports.getTracksByUploaderId = function(req, res) {
-  if (!ObjectID.isValid(req.params.uploaderId)) {
-    return res.status(400).json({ message: "Invalid trackID" });
-  } else {
-    var reqUploaderId = req.params.uploaderId;
-
-    var query = Track.find({
-      uploaderId: reqUploaderId
-    });
-
-    query.limit(5).exec(function(err, results) {
-      if (err) {
-        res.sendStatus(500);
-      } else if (_.isEmpty(results)) {
-        res.sendStatus(404);
-      } else {
-        res.json(results);
-      }
-    });
-  }
 };
 
 exports.getChartOfCity = function(req, res) {

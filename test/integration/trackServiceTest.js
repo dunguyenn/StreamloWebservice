@@ -103,6 +103,13 @@ describe("Track Service Integration Tests", function() {
 
   describe("Public Track Endpoints", function() {
     describe("GET /tracks", function() {
+      it("returns status code 200 with no additional query strings", function(done) {
+        request(app)
+          .get("/tracks")
+          .expect(200)
+          .end(done);
+      });
+
       it("returns status code 200 with valid track title, page number and per_page", function(done) {
         request(app)
           .get("/tracks?title=little+idea&page=1&per_page=5")
@@ -128,6 +135,20 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
+      it("returns status code 200 with valid track title, trackURL, uploaderID, page number and per_page", function(done) {
+        let testUserId = testUser._id.toString();
+        request(app)
+          .get("/tracks?title=little+idea&trackURL=testurl&uploaderId=" + testUserId + "&page=1&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.tracks);
+            assert.lengthOf(res.body.tracks, 1);
+            res.body.tracks[0].uploaderId.should.equal(testUserId);
+            res.body.total.should.equal(1);
+          })
+          .end(done);
+      });
+
       it("returns status code 400 when per_page set to less then 1", function(done) {
         request(app)
           .get("/tracks?title=little+idea&page=1&per_page=0")
@@ -148,31 +169,45 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
-      it("returns status code 404 with non-existent track name", function(done) {
-        request(app)
-          .get("/tracks?title=nonExistentTrack&page=1&per_page=5")
-          .expect(404, done);
+      describe("GET /tracks?title=", function() {
+        it("returns status code 200 with valid title query string", function(done) {
+          request(app)
+            .get("/tracks?title=little+idea")
+            .expect(200)
+            .end(done);
+        });
+
+        it("returns status code 404 with non-existent track name", function(done) {
+          request(app)
+            .get("/tracks?title=nonExistentTrack&page=1&per_page=5")
+            .expect(404, done);
+        });
       });
 
-      it("returns status code 200 with track name and no additional query strings", function(done) {
-        request(app)
-          .get("/tracks?title=little+idea")
-          .expect(200)
-          .end(done);
-      });
+      describe("GET /tracks?uploaderId=", function() {
+        it("returns status code 200 with valid uploaderId", function(done) {
+          request(app)
+            .get("/tracks?uploaderId=" + testUser._id)
+            .expect(200)
+            .expect(function(res) {
+              assert.isArray(res.body.tracks);
+              assert.lengthOf(res.body.tracks, 1);
+            })
+            .end(done);
+        });
 
-      it("returns status code 200 per_page set to number over 10", function(done) {
-        request(app)
-          .get("/tracks?title=little+idea")
-          .expect(200)
-          .end(done);
-      });
-
-      it("returns status code 200 with no additional query strings", function(done) {
-        request(app)
-          .get("/tracks")
-          .expect(200)
-          .end(done);
+        it("returns status code 400 with invalid uploaderId", function(done) {
+          request(app)
+            .get("/tracks?uploaderId=" + "123")
+            .expect(400)
+            .end(done);
+        });
+        it("returns status code 404 when no user matches uploaderId", function(done) {
+          request(app)
+            .get("/tracks?uploaderId=" + "5a204aad5219defcba519575")
+            .expect(404)
+            .end(done);
+        });
       });
     });
 
@@ -199,31 +234,6 @@ describe("Track Service Integration Tests", function() {
       it("returns status code 404 with non existent trackBinaryId", function(done) {
         request(app)
           .get("/tracks/69f5c1be7483f906c25169ae/stream")
-          .expect(404)
-          .end(done);
-      });
-    });
-
-    describe("GET /tracks/uploaderId/:uploaderId", function() {
-      it("returns status code 200 with valid uploaderId", function(done) {
-        request(app)
-          .get("/tracks/uploaderId/" + testUser._id)
-          .expect(200)
-          .expect(function(res) {
-            assert.isArray(res.body);
-            assert.lengthOf(res.body, 1);
-          })
-          .end(done);
-      });
-      it("returns status code 400 with invalid uploaderId", function(done) {
-        request(app)
-          .get("/tracks/uploaderId/123")
-          .expect(400)
-          .end(done);
-      });
-      it("returns status code 404 when no user matches uploaderId", function(done) {
-        request(app)
-          .get("/tracks/uploaderId/5a204aad5219defcba519575")
           .expect(404)
           .end(done);
       });

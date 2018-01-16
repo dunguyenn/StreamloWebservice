@@ -209,6 +209,28 @@ describe("Track Service Integration Tests", function() {
             .end(done);
         });
       });
+
+      describe("GET /tracks?city=", function() {
+        it("returns status code 200 and a chart with valid city name", function(done) {
+          request(app)
+            .get("/tracks?city=Belfast")
+            .expect(200)
+            .expect(function(res) {
+              assert.isArray(res.body.tracks);
+              assert.lengthOf(res.body.tracks, 1);
+            })
+            .end(done);
+        });
+        it("returns status code 400 with invalid city name ", function(done) {
+          request(app)
+            .get("/tracks?city=notValidCityName")
+            .expect(404)
+            .expect(function(res) {
+              res.body.message.should.equal("Unable to find track");
+            })
+            .end(done);
+        });
+      });
     });
 
     describe("GET /tracks/:trackId/stream", function() {
@@ -235,28 +257,6 @@ describe("Track Service Integration Tests", function() {
         request(app)
           .get("/tracks/69f5c1be7483f906c25169ae/stream")
           .expect(404)
-          .end(done);
-      });
-    });
-
-    describe("GET /tracks/:city/chart", function() {
-      it("returns status code 200 and a chart with valid city name", function(done) {
-        request(app)
-          .get("/tracks/Belfast/chart")
-          .expect(200)
-          .expect(function(res) {
-            assert.isArray(res.body);
-            assert.lengthOf(res.body, 1);
-          })
-          .end(done);
-      });
-      it("returns status code 400 with invalid city name ", function(done) {
-        request(app)
-          .get("/tracks/InvalidCityName/chart")
-          .expect(400)
-          .expect(function(res) {
-            res.body.message.should.equal("Invalid city name");
-          })
           .end(done);
       });
     });

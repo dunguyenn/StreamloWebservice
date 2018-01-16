@@ -12,9 +12,4 @@ publicTrackRoutes.get("/:trackId/stream", function(req, res) {
   return trackController.getTrackStreamByGridFSId(req, res);
 });
 
-// GET top 10 tracks of city sorted by number of plays
-publicTrackRoutes.get("/:city/chart", function(req, res) {
-  return trackController.getChartOfCity(req, res);
-});
-
 module.exports = publicTrackRoutes;

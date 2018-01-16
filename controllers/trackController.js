@@ -80,6 +80,9 @@ function determineMongooseQueryFilter(queryStrings) {
       case "uploaderId":
         Object.assign(mongooseQueryFilter, { uploaderId: queryStrings.uploaderId });
         break;
+      case "city":
+        Object.assign(mongooseQueryFilter, { city: queryStrings.city });
+        break;
       default:
     }
   }
@@ -139,37 +142,6 @@ let getNumberOfTracks = (mongooseQueryFilter, cb) => {
       cb(err);
     } else {
       cb(null, totalNumberMatchingTracks);
-    }
-  });
-};
-
-exports.getChartOfCity = function(req, res) {
-  var requestedCity = req.params.city;
-
-  // Create instance of mongoose Track model to perform city name validation against
-  var trackToBeValidated = new Track();
-  trackToBeValidated.city = requestedCity;
-  trackToBeValidated.validate(function(error) {
-    if (error.errors.city) {
-      res.status(400).json({ message: "Invalid city name" });
-    } else {
-      var query = Track.find({
-        city: requestedCity
-      });
-
-      query
-        .sort({
-          numPlays: "desc"
-        })
-        .limit(10)
-        .exec(function(err, results) {
-          if (err) res.sendStatus(500);
-          else if (_.isEmpty(results)) {
-            res.status(200).json({ message: "No tracks found for this city" });
-          } else {
-            res.status(200).json(results);
-          }
-        });
     }
   });
 };

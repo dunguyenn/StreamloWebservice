@@ -374,6 +374,7 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
         if (!user) return res.status(400).json({ message: "No user associated with the commenter" });
         Track.update(
           { _id: trackId },
+          { numComments: track.numComments + 1 },
           {
             $push: { comments: com }
           },

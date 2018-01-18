@@ -107,7 +107,10 @@ exports.getTracks = (req, res) => {
 
   let mongooseQueryFilter = determineMongooseQueryFilter(req.query);
 
-  Track.find(mongooseQueryFilter)
+  Track.find(mongooseQueryFilter, {})
+    .select(
+      "title genre description trackURL city numPlays numLikes numComments uploaderId dateUploaded trackBinaryId albumArtBinaryId"
+    )
     .sort({
       numPlays: "desc"
     })
@@ -323,6 +326,29 @@ exports.deleteTrackByTrackURL = function(req, res) {
         res
           .status(403)
           .json({ message: "JWT token provided does not map to a user who has permission to delete this track." });
+      }
+    }
+  });
+};
+
+exports.getTrackCommentsById = function(req, res) {
+  let trackId = req.params.trackId;
+  if (!ObjectID.isValid(trackId)) res.status(400).json({ message: "Invalid trackId format" });
+
+  let query = Track.find({
+    _id: trackId
+  }).select("comments");
+
+  query.exec(function(err, tracks) {
+    if (err) return res.sendStatus(500);
+    else if (tracks.length == 0) {
+      res.status(404).json({ message: "No tracks found with this trackId" });
+    } else {
+      let matchingTrackComments = tracks[0].comments;
+      if (matchingTrackComments.length == 0) {
+        res.status(404).json({ message: "No comments found on this track" });
+      } else {
+        res.status(200).json({ comments: matchingTrackComments });
       }
     }
   });

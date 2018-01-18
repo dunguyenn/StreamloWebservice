@@ -68,7 +68,12 @@ describe("Track Service Integration Tests", function() {
             dateUploaded: moment().add(30, "minute"),
             uploaderId: userMongoID,
             description: "testDesc",
-            trackBinaryId: trackGridFSId
+            trackBinaryId: trackGridFSId,
+            comments: {
+              user: trackMongoID,
+              datePosted: moment(),
+              body: "testCommentBody"
+            }
           });
 
           Track(testTrack).save((err, track) => {
@@ -257,6 +262,46 @@ describe("Track Service Integration Tests", function() {
         request(app)
           .get("/tracks/69f5c1be7483f906c25169ae/stream")
           .expect(404)
+          .end(done);
+      });
+    });
+
+    describe("GET /tracks/:trackId/comments", function() {
+      it("returns status code 200 with valid trackId which maps to a track with comments", function(done) {
+        request(app)
+          .get("/tracks/" + testTrack._id + "/comments")
+          .expect(200)
+          .expect(function(res) {
+            let comments = res.body.comments;
+            assert.isArray(comments);
+            assert.lengthOf(comments, 1);
+            assert.isString(comments[0]._id);
+            assert.isString(comments[0].body);
+            assert.isString(comments[0].datePosted);
+            assert.isString(comments[0].user);
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 and correct message with valid trackId which doesn't map to a track", function(done) {
+        let randomObjectId = "5a5e676f315931677b917a3a";
+        request(app)
+          .get("/tracks/" + randomObjectId + "/comments")
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal("No tracks found with this trackId");
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 and correct message with invalid trackId", function(done) {
+        let invalidObjectId = "12345";
+        request(app)
+          .get("/tracks/" + invalidObjectId + "/comments")
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid trackId format");
+          })
           .end(done);
       });
     });

@@ -267,7 +267,7 @@ describe("Track Service Integration Tests", function() {
     });
 
     describe("GET /tracks/:trackId/comments", function() {
-      it("returns status code 200 with valid trackId which maps to a track with comments", function(done) {
+      it("returns status code 200 with valid trackId which maps to a track with comments. No additional query strings", function(done) {
         request(app)
           .get("/tracks/" + testTrack._id + "/comments")
           .expect(200)
@@ -283,13 +283,39 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
+      it("returns status code 200 with valid trackId and valid query strings: per_page, page", function(done) {
+        request(app)
+          .get("/tracks/" + testTrack._id + "/comments?page=1&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            let comments = res.body.comments;
+            assert.isArray(comments);
+            assert.lengthOf(comments, 1);
+            assert.isString(comments[0]._id);
+            assert.isString(comments[0].body);
+            assert.isString(comments[0].datePosted);
+            assert.isString(comments[0].user);
+          })
+          .end(done);
+      });
+
+      it("returns status code 200 with correct message when passed valid trackId and query strings: per_page, page. page requested contains no comments", function(done) {
+        request(app)
+          .get("/tracks/" + testTrack._id + "/comments?page=2&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("No comments found on this page");
+          })
+          .end(done);
+      });
+
       it("returns status code 404 and correct message with valid trackId which doesn't map to a track", function(done) {
         let randomObjectId = "5a5e676f315931677b917a3a";
         request(app)
           .get("/tracks/" + randomObjectId + "/comments")
           .expect(404)
           .expect(function(res) {
-            res.body.message.should.equal("No tracks found with this trackId");
+            res.body.message.should.equal("No track found with this trackId");
           })
           .end(done);
       });

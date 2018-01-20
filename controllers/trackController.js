@@ -45,9 +45,10 @@ exports.getTrackStreamByGridFSId = function(req, res) {
   }
 };
 
-function validateGetTracksRequest(reqQuery) {
-  let page = reqQuery.page;
-  let perPage = reqQuery.per_page;
+function validateGetTracksRequest(queryStrings) {
+  let page = queryStrings.page;
+  let perPage = queryStrings.per_page;
+  let uploaderId = queryStrings.uploaderId;
 
   if (!Number.isInteger(parseInt(page)) || page - 1 < 0) {
     return { success: false, message: "Invalid page number. Page numbers start from 1 (one-indexed)" };
@@ -57,7 +58,35 @@ function validateGetTracksRequest(reqQuery) {
   } else if (perPage > 10) {
     return { success: false, message: "Invalid per page number. Maximum number of tracks per page is 10" };
   }
+  if (uploaderId) {
+    if (!ObjectID.isValid(uploaderId)) {
+      return { success: false, message: "Invalid uploaderId" };
+    }
+  }
   return { success: true };
+}
+
+function determineMongooseQueryFilter(queryStrings) {
+  let mongooseQueryFilter = {}; // default no filter (find all)
+
+  for (var queryString in queryStrings) {
+    switch (queryString) {
+      case "title":
+        Object.assign(mongooseQueryFilter, { title: queryStrings.title });
+        break;
+      case "trackURL":
+        Object.assign(mongooseQueryFilter, { trackURL: queryStrings.trackURL });
+        break;
+      case "uploaderId":
+        Object.assign(mongooseQueryFilter, { uploaderId: queryStrings.uploaderId });
+        break;
+      case "city":
+        Object.assign(mongooseQueryFilter, { city: queryStrings.city });
+        break;
+      default:
+    }
+  }
+  return mongooseQueryFilter;
 }
 
 exports.getTracks = (req, res) => {
@@ -75,16 +104,13 @@ exports.getTracks = (req, res) => {
   let response = {};
   let requestedPage = parseInt(req.query.page);
   let perPage = parseInt(req.query.per_page);
-  let trackTitle = req.query.q;
 
-  let query = Track.find({
-    title: trackTitle
-  });
-  if (!trackTitle) {
-    query = Track.find({});
-  }
+  let mongooseQueryFilter = determineMongooseQueryFilter(req.query);
 
-  query
+  Track.find(mongooseQueryFilter, {})
+    .select(
+      "title genre description trackURL city numPlays numLikes numComments uploaderId dateUploaded trackBinaryId albumArtBinaryId"
+    )
     .sort({
       numPlays: "desc"
     })
@@ -94,10 +120,10 @@ exports.getTracks = (req, res) => {
       if (err) {
         res.sendStatus(500);
       } else if (_.isEmpty(results)) {
-        res.sendStatus(404);
+        res.status(404).json({ message: "Unable to find track" });
       } else {
         response.tracks = results;
-        getNumberOfTracks(trackTitle, (err, totalNumberMatchingTracks) => {
+        getNumberOfTracks(mongooseQueryFilter, (err, totalNumberMatchingTracks) => {
           if (err) {
             res.sendStatus(500);
           } else {
@@ -112,90 +138,13 @@ exports.getTracks = (req, res) => {
     });
 };
 
-let getNumberOfTracks = (trackTitle, cb) => {
-  let query = Track.count({
-    title: trackTitle
-  });
-  if (trackTitle == undefined) {
-    query = Track.count({});
-  }
-
+let getNumberOfTracks = (mongooseQueryFilter, cb) => {
+  let query = Track.count(mongooseQueryFilter);
   query.exec((err, totalNumberMatchingTracks) => {
     if (err) {
       cb(err);
     } else {
       cb(null, totalNumberMatchingTracks);
-    }
-  });
-};
-
-exports.getTracksByUploaderId = function(req, res) {
-  if (!ObjectID.isValid(req.params.uploaderId)) {
-    return res.status(400).json({ message: "Invalid trackID" });
-  } else {
-    var reqUploaderId = req.params.uploaderId;
-
-    var query = Track.find({
-      uploaderId: reqUploaderId
-    });
-
-    query.limit(5).exec(function(err, results) {
-      if (err) {
-        res.sendStatus(500);
-      } else if (_.isEmpty(results)) {
-        res.sendStatus(404);
-      } else {
-        res.json(results);
-      }
-    });
-  }
-};
-
-exports.getTrackByURL = function(req, res) {
-  var trackURL = req.params.trackURL;
-  var query = Track.findOne({
-    trackURL: trackURL
-  });
-
-  query.exec(function(err, results) {
-    if (err) res.sendStatus(500);
-    else if (_.isEmpty(results)) {
-      res.status(404).json({
-        message: "No track found with this trackURL"
-      });
-    } else {
-      res.json(results);
-    }
-  });
-};
-
-exports.getChartOfCity = function(req, res) {
-  var requestedCity = req.params.city;
-
-  // Create instance of mongoose Track model to perform city name validation against
-  var trackToBeValidated = new Track();
-  trackToBeValidated.city = requestedCity;
-  trackToBeValidated.validate(function(error) {
-    if (error.errors.city) {
-      res.status(400).json({ message: "Invalid city name" });
-    } else {
-      var query = Track.find({
-        city: requestedCity
-      });
-
-      query
-        .sort({
-          numPlays: "desc"
-        })
-        .limit(10)
-        .exec(function(err, results) {
-          if (err) res.sendStatus(500);
-          else if (_.isEmpty(results)) {
-            res.status(200).json({ message: "No tracks found for this city" });
-          } else {
-            res.status(200).json(results);
-          }
-        });
     }
   });
 };
@@ -260,11 +209,6 @@ exports.postTrack = (req, res) => {
     let trackTitle = req.body.title;
     let uploderId = req.body.uploaderId;
 
-    // Covert buffer to Readable Stream
-    const readableTrackStream = new Readable();
-    readableTrackStream.push(req.file.buffer);
-    readableTrackStream.push(null);
-
     let db = mongoose.connection.db;
     let bucket = new mongodb.GridFSBucket(db, {
       bucketName: "trackBinaryFiles"
@@ -272,38 +216,41 @@ exports.postTrack = (req, res) => {
 
     let uploadStream = bucket.openUploadStream(trackTitle, { contentType: "audio/mp3" });
     let trackGridFSId = uploadStream.id;
-    readableTrackStream.pipe(uploadStream);
 
-    uploadStream.on("error", () => {
-      res.status(500).json({ message: "Error uploading file" });
+    var track = new Track({
+      title: req.body.title,
+      genre: req.body.genre,
+      city: req.body.city,
+      trackURL: req.body.trackURL,
+      dateUploaded: req.body.dateUploaded,
+      uploaderId: req.body.uploaderId,
+      description: req.body.description,
+      trackBinaryId: trackGridFSId
     });
 
-    uploadStream.on("finish", () => {
-      var track = new Track({
-        title: req.body.title,
-        genre: req.body.genre,
-        city: req.body.city,
-        trackURL: req.body.trackURL,
-        dateUploaded: req.body.dateUploaded,
-        uploaderId: req.body.uploaderId,
-        description: req.body.description,
-        trackBinaryId: trackGridFSId
-      });
+    track.save(function(err, track) {
+      if (err) {
+        switch (err.message) {
+          case "No User associated with uploaderID":
+            res.status(400).json({ message: "No User account associated with uploaderID" });
+            break;
+          default:
+            res.status(500).json({ message: "Error uploading file" });
+        }
+      } else {
+        // If track document saves successfully, attempt to stream track from buffer to gridfs
+        // Covert buffer to Readable Stream
+        const readableTrackStream = new Readable();
+        readableTrackStream.push(req.file.buffer);
+        readableTrackStream.push(null);
+        readableTrackStream.pipe(uploadStream);
 
-      track.save(function(err, track) {
-        // Attempt to save track
-        if (err) {
-          // In event of failed track save remove gridfs file
-          bucket.delete(trackGridFSId);
-          switch (err.message) {
-            case "No User associated with uploaderID":
-              res.status(400).json({ message: "No User account associated with uploaderID" });
-              break;
-            default:
-              res.status(500).json({ message: "Error uploading file" });
-          }
-        } else {
-          // If track model saves, update uploaders user model
+        uploadStream.on("error", () => {
+          res.status(500).json({ message: "Error uploading file" });
+        });
+
+        uploadStream.on("finish", () => {
+          // If track piped to gridFS successfully, attempt to update user model
           User.findByIdAndUpdate(
             uploderId,
             {
@@ -316,21 +263,23 @@ exports.postTrack = (req, res) => {
                 numberOfTracksUploaded: 1
               }
             },
-            function(err) {
+            err => {
               if (err) {
-                // If uploaders user model fails to update, remove uploaded track from gridfs
-                bucket.delete(trackGridFSId);
-                res.status(500).json({ message: "Error uploading file" });
+                // If uploaders user document fails to update, delete track document
+                // && Delete track file from gridFS (handled by TrackModel middleware)
+                Track.findOneAndRemove({ _id: track._id }, err => {
+                  res.status(500).json({ message: "Error uploading file" });
+                });
               }
             }
           );
-          let message = {
-            message: "File uploaded successfully",
-            trackBinaryId: track.id
-          };
-          res.status(201).json(message);
-        }
-      });
+        });
+        let message = {
+          message: "File uploaded successfully",
+          trackBinaryId: track.id
+        };
+        res.status(201).json(message);
+      }
     });
   });
 };
@@ -382,10 +331,69 @@ exports.deleteTrackByTrackURL = function(req, res) {
   });
 };
 
+exports.getTrackCommentsById = function(req, res) {
+  // Default page to 1 and per_page to 5
+  if (!req.query.page) req.query.page = 1;
+  if (!req.query.per_page) req.query.per_page = 5;
+
+  let trackId = req.params.trackId;
+  if (!ObjectID.isValid(trackId)) {
+    res.status(400).json({ message: "Invalid trackId format" });
+  } else {
+    let requestedPage = parseInt(req.query.page);
+    let perPage = parseInt(req.query.per_page);
+
+    let query = Track.find({
+      _id: trackId
+    }).select("comments");
+
+    query.exec(function(err, track) {
+      if (err) return res.sendStatus(500);
+      else if (track.length == 0) {
+        res.status(404).json({ message: "No track found with this trackId" });
+      } else {
+        let matchingTrackComments = track[0].comments;
+        let totalNumberCommentsForMatchingTrack = matchingTrackComments.length;
+        if (matchingTrackComments.length == 0) {
+          res.status(404).json({ message: "No comments found on this track" });
+        } else {
+          getPageOfComments(matchingTrackComments, requestedPage, perPage, (err, commentsPage) => {
+            if (err) return res.status(200).json({ message: "errorMessage" });
+            if (commentsPage.length == 0) return res.status(200).json({ message: "No comments found on this page" });
+            let pageCount = Math.ceil(totalNumberCommentsForMatchingTrack / perPage);
+            let response = {
+              comments: commentsPage,
+              total: totalNumberCommentsForMatchingTrack,
+              page: requestedPage,
+              pageCount: pageCount
+            };
+            res.status(200).json(response);
+          });
+        }
+      }
+    });
+  }
+};
+
+let getPageOfComments = (trackComments, reqPage, perPage, cb) => {
+  // calculate initialComment on this page by skiping the first x number of comments
+  // where x is the product of perPage * (requestedPage - 1)
+
+  let commentsPage = [];
+  let firstCommentNum = perPage * (reqPage - 1);
+  let lastCommentNum = firstCommentNum + perPage;
+
+  for (let commentNum = firstCommentNum; commentNum < lastCommentNum; commentNum++) {
+    if (!trackComments[commentNum]) break;
+    commentsPage.push(trackComments[commentNum]);
+  }
+  cb(null, commentsPage);
+};
+
 exports.addCommentToTrackByTrackURL = function(req, res) {
   let commenterUserId = req.body.user;
   if (!ObjectID.isValid(commenterUserId)) {
-    res.status(400).json({ message: "Invalid userID format" });
+    return res.status(400).json({ message: "Invalid userID format" });
   } else {
     var com = {
       user: commenterUserId,
@@ -403,7 +411,8 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
         Track.update(
           { _id: trackId },
           {
-            $push: { comments: com }
+            $push: { comments: com },
+            numComments: track.numComments + 1
           },
           function(err) {
             if (err) return res.sendStatus(400);

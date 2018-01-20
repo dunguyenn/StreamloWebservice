@@ -68,7 +68,12 @@ describe("Track Service Integration Tests", function() {
             dateUploaded: moment().add(30, "minute"),
             uploaderId: userMongoID,
             description: "testDesc",
-            trackBinaryId: trackGridFSId
+            trackBinaryId: trackGridFSId,
+            comments: {
+              user: trackMongoID,
+              datePosted: moment(),
+              body: "testCommentBody"
+            }
           });
 
           Track(testTrack).save((err, track) => {
@@ -103,9 +108,16 @@ describe("Track Service Integration Tests", function() {
 
   describe("Public Track Endpoints", function() {
     describe("GET /tracks", function() {
+      it("returns status code 200 with no additional query strings", function(done) {
+        request(app)
+          .get("/tracks")
+          .expect(200)
+          .end(done);
+      });
+
       it("returns status code 200 with valid track title, page number and per_page", function(done) {
         request(app)
-          .get("/tracks?q=little+idea&page=1&per_page=5")
+          .get("/tracks?title=little+idea&page=1&per_page=5")
           .expect(200)
           .expect(function(res) {
             assert.isArray(res.body.tracks);
@@ -115,9 +127,36 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
+      it("returns status code 200 with valid track title, trackURL, page number and per_page", function(done) {
+        request(app)
+          .get("/tracks?title=little+idea&trackURL=testurl&page=1&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.tracks);
+            assert.lengthOf(res.body.tracks, 1);
+            res.body.tracks[0].trackURL.should.equal("testurl");
+            res.body.total.should.equal(1);
+          })
+          .end(done);
+      });
+
+      it("returns status code 200 with valid track title, trackURL, uploaderID, page number and per_page", function(done) {
+        let testUserId = testUser._id.toString();
+        request(app)
+          .get("/tracks?title=little+idea&trackURL=testurl&uploaderId=" + testUserId + "&page=1&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            assert.isArray(res.body.tracks);
+            assert.lengthOf(res.body.tracks, 1);
+            res.body.tracks[0].uploaderId.should.equal(testUserId);
+            res.body.total.should.equal(1);
+          })
+          .end(done);
+      });
+
       it("returns status code 400 when per_page set to less then 1", function(done) {
         request(app)
-          .get("/tracks?q=little+idea&page=1&per_page=0")
+          .get("/tracks?title=little+idea&page=1&per_page=0")
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Invalid per page number");
@@ -127,7 +166,7 @@ describe("Track Service Integration Tests", function() {
 
       it("returns status code 400 when page set to 0", function(done) {
         request(app)
-          .get("/tracks?q=little+idea&page=0&per_page=5")
+          .get("/tracks?title=little+idea&page=0&per_page=5")
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Invalid page number. Page numbers start from 1 (one-indexed)");
@@ -135,49 +174,67 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
-      it("returns status code 404 with non-existent track name", function(done) {
-        request(app)
-          .get("/tracks?q=nonExistentTrack&page=1&per_page=5")
-          .expect(404, done);
+      describe("GET /tracks?title=", function() {
+        it("returns status code 200 with valid title query string", function(done) {
+          request(app)
+            .get("/tracks?title=little+idea")
+            .expect(200)
+            .end(done);
+        });
+
+        it("returns status code 404 with non-existent track name", function(done) {
+          request(app)
+            .get("/tracks?title=nonExistentTrack&page=1&per_page=5")
+            .expect(404, done);
+        });
       });
 
-      it("returns status code 200 with track name and no additional query strings", function(done) {
-        request(app)
-          .get("/tracks?q=little+idea")
-          .expect(200)
-          .end(done);
+      describe("GET /tracks?uploaderId=", function() {
+        it("returns status code 200 with valid uploaderId", function(done) {
+          request(app)
+            .get("/tracks?uploaderId=" + testUser._id)
+            .expect(200)
+            .expect(function(res) {
+              assert.isArray(res.body.tracks);
+              assert.lengthOf(res.body.tracks, 1);
+            })
+            .end(done);
+        });
+
+        it("returns status code 400 with invalid uploaderId", function(done) {
+          request(app)
+            .get("/tracks?uploaderId=" + "123")
+            .expect(400)
+            .end(done);
+        });
+        it("returns status code 404 when no user matches uploaderId", function(done) {
+          request(app)
+            .get("/tracks?uploaderId=" + "5a204aad5219defcba519575")
+            .expect(404)
+            .end(done);
+        });
       });
 
-      it("returns status code 200 per_page set to number over 10", function(done) {
-        request(app)
-          .get("/tracks?q=little+idea")
-          .expect(200)
-          .end(done);
-      });
-
-      it("returns status code 200 with no additional query strings", function(done) {
-        request(app)
-          .get("/tracks")
-          .expect(200)
-          .end(done);
-      });
-    });
-
-    describe("GET /tracks/:trackURL", function() {
-      it("returns status code 200 with valid data", function(done) {
-        request(app)
-          .get("/tracks/" + testTrack.trackURL)
-          .expect(200)
-          .end(done);
-      });
-      it("returns status code 404 with non-existent track name", function(done) {
-        request(app)
-          .get("/tracks?q=little+idea&page=1&per_page=11")
-          .expect(400)
-          .expect(function(res) {
-            res.body.message.should.equal("Invalid per page number. Maximum number of tracks per page is 10");
-          })
-          .end(done);
+      describe("GET /tracks?city=", function() {
+        it("returns status code 200 and a chart with valid city name", function(done) {
+          request(app)
+            .get("/tracks?city=Belfast")
+            .expect(200)
+            .expect(function(res) {
+              assert.isArray(res.body.tracks);
+              assert.lengthOf(res.body.tracks, 1);
+            })
+            .end(done);
+        });
+        it("returns status code 400 with invalid city name ", function(done) {
+          request(app)
+            .get("/tracks?city=notValidCityName")
+            .expect(404)
+            .expect(function(res) {
+              res.body.message.should.equal("Unable to find track");
+            })
+            .end(done);
+        });
       });
     });
 
@@ -209,48 +266,67 @@ describe("Track Service Integration Tests", function() {
       });
     });
 
-    describe("GET /tracks/uploaderId/:uploaderId", function() {
-      it("returns status code 200 with valid uploaderId", function(done) {
+    describe("GET /tracks/:trackId/comments", function() {
+      it("returns status code 200 with valid trackId which maps to a track with comments. No additional query strings", function(done) {
         request(app)
-          .get("/tracks/uploaderId/" + testUser._id)
+          .get("/tracks/" + testTrack._id + "/comments")
           .expect(200)
           .expect(function(res) {
-            assert.isArray(res.body);
-            assert.lengthOf(res.body, 1);
+            let comments = res.body.comments;
+            assert.isArray(comments);
+            assert.lengthOf(comments, 1);
+            assert.isString(comments[0]._id);
+            assert.isString(comments[0].body);
+            assert.isString(comments[0].datePosted);
+            assert.isString(comments[0].user);
           })
           .end(done);
       });
-      it("returns status code 400 with invalid uploaderId", function(done) {
-        request(app)
-          .get("/tracks/uploaderId/123")
-          .expect(400)
-          .end(done);
-      });
-      it("returns status code 404 when no user matches uploaderId", function(done) {
-        request(app)
-          .get("/tracks/uploaderId/5a204aad5219defcba519575")
-          .expect(404)
-          .end(done);
-      });
-    });
 
-    describe("GET /tracks/:city/chart", function() {
-      it("returns status code 200 and a chart with valid city name", function(done) {
+      it("returns status code 200 with valid trackId and valid query strings: per_page, page", function(done) {
         request(app)
-          .get("/tracks/Belfast/chart")
+          .get("/tracks/" + testTrack._id + "/comments?page=1&per_page=5")
           .expect(200)
           .expect(function(res) {
-            assert.isArray(res.body);
-            assert.lengthOf(res.body, 1);
+            let comments = res.body.comments;
+            assert.isArray(comments);
+            assert.lengthOf(comments, 1);
+            assert.isString(comments[0]._id);
+            assert.isString(comments[0].body);
+            assert.isString(comments[0].datePosted);
+            assert.isString(comments[0].user);
           })
           .end(done);
       });
-      it("returns status code 400 with invalid city name ", function(done) {
+
+      it("returns status code 200 with correct message when passed valid trackId and query strings: per_page, page. page requested contains no comments", function(done) {
         request(app)
-          .get("/tracks/InvalidCityName/chart")
+          .get("/tracks/" + testTrack._id + "/comments?page=2&per_page=5")
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("No comments found on this page");
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 and correct message with valid trackId which doesn't map to a track", function(done) {
+        let randomObjectId = "5a5e676f315931677b917a3a";
+        request(app)
+          .get("/tracks/" + randomObjectId + "/comments")
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal("No track found with this trackId");
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 and correct message with invalid trackId", function(done) {
+        let invalidObjectId = "12345";
+        request(app)
+          .get("/tracks/" + invalidObjectId + "/comments")
           .expect(400)
           .expect(function(res) {
-            res.body.message.should.equal("Invalid city name");
+            res.body.message.should.equal("Invalid trackId format");
           })
           .end(done);
       });
@@ -372,6 +448,26 @@ describe("Track Service Integration Tests", function() {
           .expect(400)
           .expect(function(res) {
             res.body.message.should.equal("Invalid trackURL in request body.");
+          })
+          .end(done);
+      });
+
+      it("retuns status code 400 and correct message with duplicate trackURL in body", function(done) {
+        var uploaderIDThatDoesNotMapToAnyTestUser = "5b2d83d81b815cd644df5468";
+        request(app)
+          .post("/tracks")
+          .set("x-access-token", testUserToken)
+          .field("title", "testTrack")
+          .field("genre", "Pop")
+          .field("city", "Belfast")
+          .field("trackURL", "test123")
+          .field("dateUploaded", validDate)
+          .field("uploaderId", uploaderIDThatDoesNotMapToAnyTestUser)
+          .field("description", "testDesc")
+          .attach("track", "test/littleidea.mp3")
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("No User account associated with uploaderID");
           })
           .end(done);
       });

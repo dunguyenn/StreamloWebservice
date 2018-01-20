@@ -337,40 +337,42 @@ exports.getTrackCommentsById = function(req, res) {
   if (!req.query.per_page) req.query.per_page = 5;
 
   let trackId = req.params.trackId;
-  if (!ObjectID.isValid(trackId)) res.status(400).json({ message: "Invalid trackId format" });
+  if (!ObjectID.isValid(trackId)) {
+    res.status(400).json({ message: "Invalid trackId format" });
+  } else {
+    let requestedPage = parseInt(req.query.page);
+    let perPage = parseInt(req.query.per_page);
 
-  let requestedPage = parseInt(req.query.page);
-  let perPage = parseInt(req.query.per_page);
+    let query = Track.find({
+      _id: trackId
+    }).select("comments");
 
-  let query = Track.find({
-    _id: trackId
-  }).select("comments");
-
-  query.exec(function(err, track) {
-    if (err) return res.sendStatus(500);
-    else if (track.length == 0) {
-      res.status(404).json({ message: "No track found with this trackId" });
-    } else {
-      let matchingTrackComments = track[0].comments;
-      let totalNumberCommentsForMatchingTrack = matchingTrackComments.length;
-      if (matchingTrackComments.length == 0) {
-        res.status(404).json({ message: "No comments found on this track" });
+    query.exec(function(err, track) {
+      if (err) return res.sendStatus(500);
+      else if (track.length == 0) {
+        res.status(404).json({ message: "No track found with this trackId" });
       } else {
-        getPageOfComments(matchingTrackComments, requestedPage, perPage, (err, commentsPage) => {
-          if (err) return res.status(200).json({ message: "errorMessage" });
-          if (commentsPage.length == 0) return res.status(200).json({ message: "No comments found on this page" });
-          let pageCount = Math.ceil(totalNumberCommentsForMatchingTrack / perPage);
-          let response = {
-            comments: commentsPage,
-            total: totalNumberCommentsForMatchingTrack,
-            page: requestedPage,
-            pageCount: pageCount
-          };
-          res.status(200).json(response);
-        });
+        let matchingTrackComments = track[0].comments;
+        let totalNumberCommentsForMatchingTrack = matchingTrackComments.length;
+        if (matchingTrackComments.length == 0) {
+          res.status(404).json({ message: "No comments found on this track" });
+        } else {
+          getPageOfComments(matchingTrackComments, requestedPage, perPage, (err, commentsPage) => {
+            if (err) return res.status(200).json({ message: "errorMessage" });
+            if (commentsPage.length == 0) return res.status(200).json({ message: "No comments found on this page" });
+            let pageCount = Math.ceil(totalNumberCommentsForMatchingTrack / perPage);
+            let response = {
+              comments: commentsPage,
+              total: totalNumberCommentsForMatchingTrack,
+              page: requestedPage,
+              pageCount: pageCount
+            };
+            res.status(200).json(response);
+          });
+        }
       }
-    }
-  });
+    });
+  }
 };
 
 let getPageOfComments = (trackComments, reqPage, perPage, cb) => {
@@ -391,7 +393,7 @@ let getPageOfComments = (trackComments, reqPage, perPage, cb) => {
 exports.addCommentToTrackByTrackURL = function(req, res) {
   let commenterUserId = req.body.user;
   if (!ObjectID.isValid(commenterUserId)) {
-    res.status(400).json({ message: "Invalid userID format" });
+    return res.status(400).json({ message: "Invalid userID format" });
   } else {
     var com = {
       user: commenterUserId,

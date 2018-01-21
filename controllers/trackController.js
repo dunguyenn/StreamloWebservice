@@ -321,6 +321,7 @@ exports.deleteTrackByTrackURL = function(req, res) {
       let clientUploaderId = req.decoded.userId;
 
       if (clientUploaderId == uploaderIdOfCandidateTrack) {
+        // TODO Actually delete the track
         res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
       } else {
         res
@@ -422,6 +423,58 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
       });
     });
   }
+};
+
+function validateDeleteCommentReq(req) {
+  let commentId = req.params.commentId;
+
+  if (!commentId) {
+    return { success: false, message: "No commmentId in request body" };
+  } else if (!ObjectID.isValid(commentId)) {
+    return { success: false, message: "Invalid commentId in request body" };
+  }
+
+  return { success: true };
+}
+
+exports.removeCommentFromTrackByCommentId = (req, res) => {
+  const validationResult = validateDeleteCommentReq(req);
+  if (!validationResult.success) {
+    return res.status(400).json({
+      message: validationResult.message
+    });
+  }
+
+  let commentId = req.params.commentId;
+  let decodedUserIdFromProvidedJWTToken = req.decoded.userId;
+
+  Track.findOne(
+    {
+      "comments._id": commentId
+    },
+    function(err, track) {
+      if (!track) return res.status(400).json({ message: "Comment not found" });
+      // get comment with _id = commentId
+      let trackComments = track.comments;
+      function findCommentById(comment) {
+        return comment._id == commentId;
+      }
+
+      let matchingCommentIndex = trackComments.findIndex(findCommentById);
+      let mathcingCommentToRemove = trackComments[matchingCommentIndex];
+
+      if (mathcingCommentToRemove.user == decodedUserIdFromProvidedJWTToken) {
+        // if comment userId equals userId from provided JWT Token; user has permission to delete this comment
+        track.comments.pull(commentId);
+        track.save({ validateBeforeSave: false }, error => {
+          if (err) return res.status(500).json({ message: "Error deleting comment" });
+          return res.status(200).json({ message: "Comment deleted" });
+        });
+      } else {
+        return res.status(403).json({ message: "Unauthorized to delete this comment" });
+      }
+    }
+  );
 };
 
 exports.updateTrackDescriptionByTrackURL = (req, res) => {

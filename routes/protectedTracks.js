@@ -16,6 +16,11 @@ protectedTrackRoutes.post("/:trackURL/comments", function(req, res) {
   return trackController.addCommentToTrackByTrackURL(req, res);
 });
 
+// Delete comment by trackURL and commmentId
+protectedTrackRoutes.delete("/comments/:commentId", function(req, res) {
+  return trackController.removeCommentFromTrackByCommentId(req, res);
+});
+
 // Update track description by trackURL
 protectedTrackRoutes.patch("/:trackURL/description", function(req, res) {
   return trackController.updateTrackDescriptionByTrackURL(req, res);

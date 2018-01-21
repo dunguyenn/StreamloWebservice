@@ -69,11 +69,18 @@ describe("Track Service Integration Tests", function() {
             uploaderId: userMongoID,
             description: "testDesc",
             trackBinaryId: trackGridFSId,
-            comments: {
-              user: trackMongoID,
-              datePosted: moment(),
-              body: "testCommentBody"
-            }
+            comments: [
+              {
+                user: userMongoID,
+                datePosted: moment(),
+                body: "testCommentBody"
+              },
+              {
+                user: userMongoID,
+                datePosted: moment(),
+                body: "testCommentBody"
+              }
+            ]
           });
 
           Track(testTrack).save((err, track) => {
@@ -274,11 +281,6 @@ describe("Track Service Integration Tests", function() {
           .expect(function(res) {
             let comments = res.body.comments;
             assert.isArray(comments);
-            assert.lengthOf(comments, 1);
-            assert.isString(comments[0]._id);
-            assert.isString(comments[0].body);
-            assert.isString(comments[0].datePosted);
-            assert.isString(comments[0].user);
           })
           .end(done);
       });
@@ -290,11 +292,6 @@ describe("Track Service Integration Tests", function() {
           .expect(function(res) {
             let comments = res.body.comments;
             assert.isArray(comments);
-            assert.lengthOf(comments, 1);
-            assert.isString(comments[0]._id);
-            assert.isString(comments[0].body);
-            assert.isString(comments[0].datePosted);
-            assert.isString(comments[0].user);
           })
           .end(done);
       });
@@ -827,6 +824,78 @@ describe("Track Service Integration Tests", function() {
           .expect(function(res) {
             res.body.success.should.equal(false);
             res.body.message.should.equal("No token provided.");
+          })
+          .end(done);
+      });
+    });
+
+    describe("DELETE /tracks/comments/:commentId", function() {
+      let testUserWithoutPermissionToDeleteTrack;
+      let testUserWithoutPermissionToDeleteTrackToken;
+
+      before(function(done) {
+        const testUserData = new User({
+          email: "deleteTest2@hotmail.com",
+          password: "password",
+          userURL: "deleteTestURL2",
+          displayName: "deleteTestDispName",
+          city: "Belfast"
+        });
+
+        User(testUserData).save((err, user) => {
+          testUserWithoutPermissionToDeleteTrack = user;
+          testUserWithoutPermissionToDeleteTrackToken = utilsJWT.generateToken(user);
+          done();
+        });
+      });
+
+      after(function(done) {
+        User.findByIdAndRemove(testUserWithoutPermissionToDeleteTrack._id, () => {
+          done();
+        });
+      });
+
+      it("returns status code 200 and correct message with valid commentId", function(done) {
+        request(app)
+          .delete("/tracks/comments/" + testTrack.comments[0]._id)
+          .set("x-access-token", testUserToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("Comment deleted");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 and correct message with invalid commentId sent", function(done) {
+        request(app)
+          .delete("/tracks/comments/" + "12345")
+          .set("x-access-token", testUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid commentId in request body");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 and correct message with non existent comment", function(done) {
+        let nonExistentCommentId = "6a6606fe26917d767dd4991a";
+        request(app)
+          .delete("/tracks/comments/" + nonExistentCommentId)
+          .set("x-access-token", testUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Comment not found");
+          })
+          .end(done);
+      });
+
+      it("returns status code 403 and correct message when user doesnt have permission to delete comment", function(done) {
+        request(app)
+          .delete("/tracks/comments/" + testTrack.comments[1]._id)
+          .set("x-access-token", testUserWithoutPermissionToDeleteTrackToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this comment");
           })
           .end(done);
       });

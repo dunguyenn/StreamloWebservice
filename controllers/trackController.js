@@ -466,6 +466,7 @@ exports.removeCommentFromTrackByCommentId = (req, res) => {
       if (mathcingCommentToRemove.user == decodedUserIdFromProvidedJWTToken) {
         // if comment userId equals userId from provided JWT Token; user has permission to delete this comment
         track.comments.pull(commentId);
+        track.numComments = track.numComments - 1;
         track.save({ validateBeforeSave: false }, error => {
           if (err) return res.status(500).json({ message: "Error deleting comment" });
           return res.status(200).json({ message: "Comment deleted" });

@@ -13,4 +13,9 @@ protectedUserRoutes.post("/:userURL/addProfilePicture", upload.single("profilePi
   return userController.addProfilePictureToUser(req, res);
 });
 
+// PATCH user displayName by userId
+protectedUserRoutes.patch("/:userId/displayname/:displayName", function(req, res) {
+  return userController.updateDisplaynameByUserId(req, res);
+});
+
 module.exports = protectedUserRoutes;

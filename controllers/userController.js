@@ -2,8 +2,6 @@ const User = require("../models/userModel.js");
 const mongodb = require("mongodb");
 const ObjectID = require("mongodb").ObjectID;
 const mongoose = require("mongoose");
-const fs = require("fs");
-const conn = mongoose.connection;
 const _ = require("lodash");
 
 // TODO implement addProfilePictureToUser function
@@ -108,4 +106,28 @@ exports.getUserById = function(req, res) {
       }
     });
   }
+};
+
+exports.updateDisplaynameByUserId = (req, res) => {
+  let userId = req.params.userId;
+  let candidateDisplayName = req.params.displayName;
+  let requestorDecodedJWTToken = req.decoded;
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating username" });
+    if (!user) return res.status(404).json({ message: "No user found with requested Id" });
+
+    // check if requestor has permission to update this displayname (requestors userId is equal to userId of returned user document)
+    if (requestorDecodedJWTToken.userId == user._id) {
+      user.displayName = candidateDisplayName;
+      user.save({ validateBeforeSave: true }, error => {
+        if (err) return res.status(500).json({ message: "Error updating display name" });
+        return res.status(200).json({ message: `Display name successfully changed to '${candidateDisplayName}'` });
+      });
+    } else {
+      return res.status(403).json({ message: "Unauthorized to update this users display name" });
+    }
+  });
 };

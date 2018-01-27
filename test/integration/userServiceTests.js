@@ -1,13 +1,15 @@
 const request = require("supertest");
 const chai = require("chai");
-
 const assert = chai.assert;
 
 const User = require("../../models/userModel.js");
+const utilsJWT = require("../../utils/jwt");
 
 describe("User Service Integration Tests", function() {
   let app;
   let testUser;
+  let testUser2;
+  var testUserToken;
 
   const userMongoID = "5a2d83d81b815cd644df5468";
   const userMongoID2 = "5a2d83d81b815cd644df5469";
@@ -28,6 +30,7 @@ describe("User Service Integration Tests", function() {
     User(testUserData)
       .save((err, user) => {
         testUser = user;
+        testUserToken = utilsJWT.generateToken(user);
       })
       .then(() => {
         const testUserData = new User({
@@ -41,6 +44,7 @@ describe("User Service Integration Tests", function() {
         });
 
         User(testUserData).save((err, user) => {
+          testUser2 = user;
           done();
         });
       });
@@ -220,6 +224,70 @@ describe("User Service Integration Tests", function() {
   });
 
   describe("Protected User Endpoints", function() {
+    describe("PATCH users/:userId/displayname/:displayname", function() {
+      it("returns status code 200 with valid data", function(done) {
+        let newDisplayName = "newdisplayname";
+        request(app)
+          .patch("/users/" + testUser._id + "/displayname/" + newDisplayName)
+          .set("x-access-token", testUserToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal(`Display name successfully changed to '${newDisplayName}'`);
+          })
+          .end(done);
+      });
+
+      it("returns status code 401 and correct message when no jwt access token header present", function(done) {
+        request(app)
+          .patch("/users/" + testUser._id + "/displayname/" + "randomDisplayname")
+          .expect(401)
+          .expect(function(res) {
+            res.body.success.should.equal(false);
+            res.body.message.should.equal("No token provided.");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 with invalid userId", function(done) {
+        let newDisplayName = "newdisplayname";
+        let invalidUserId = "abc";
+        request(app)
+          .patch("/users/" + invalidUserId + "/displayname/" + newDisplayName)
+          .set("x-access-token", testUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid userId in request");
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 with non-existent userId", function(done) {
+        let newDisplayName = "newdisplayname";
+        let validButRandomUserId = "5a47f85d6a166cccb6729d5b";
+        request(app)
+          .patch("/users/" + validButRandomUserId + "/displayname/" + newDisplayName)
+          .set("x-access-token", testUserToken)
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal("No user found with requested Id");
+          })
+          .end(done);
+      });
+
+      it("returns status code 403 with userId that does not have permission to change name (different user)", function(done) {
+        let newDisplayName = "newdisplayname";
+
+        request(app)
+          .patch("/users/" + testUser2._id + "/displayname/" + newDisplayName)
+          .set("x-access-token", testUserToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to update this users display name");
+          })
+          .end(done);
+      });
+    });
+
     describe("POST users/:userURL/addProfilePicture", function() {
       it.skip("returns status code 200 with valid data", function(done) {});
 

@@ -926,7 +926,16 @@ describe("Track Service Integration Tests", function() {
           return done();
         });
       });
-
+      it("returns status code 403 and correct message when logged in user did not upload the track and therfore does not have permission to delete it", function(done) {
+        request(app)
+          .delete(`/tracks/${testTrack.trackURL}`)
+          .set("x-access-token", testUserWithNoUploadedTracksToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this comment");
+          })
+          .end(done);
+      });
       it("returns status code 200 with valid data", function(done) {
         request(app)
           .delete(`/tracks/${testTrack.trackURL}`)
@@ -934,18 +943,6 @@ describe("Track Service Integration Tests", function() {
           .expect(200)
           .expect(function(res) {
             res.body.message.should.equal(`Track with trackURL '${testTrack.trackURL}' deleted successfully`);
-          })
-          .end(done);
-      });
-      it("returns status code 403 and correct message when logged in user did not upload the track and therfore does not have permission to delete it", function(done) {
-        request(app)
-          .delete(`/tracks/${testTrack.trackURL}`)
-          .set("x-access-token", testUserWithNoUploadedTracksToken)
-          .expect(403)
-          .expect(function(res) {
-            res.body.message.should.equal(
-              "JWT token provided does not map to a user who has permission to delete this track."
-            );
           })
           .end(done);
       });

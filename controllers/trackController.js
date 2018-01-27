@@ -317,16 +317,18 @@ exports.deleteTrackByTrackURL = function(req, res) {
     else if (track.length == 0) {
       res.status(404).json({ message: "No track with this trackURL found on the system" });
     } else {
-      let uploaderIdOfCandidateTrack = track[0].uploaderId;
+      let candidateTrackToBeDeleted = track[0];
+      let uploaderIdOfCandidateTrack = candidateTrackToBeDeleted.uploaderId;
       let clientUploaderId = req.decoded.userId;
 
       if (clientUploaderId == uploaderIdOfCandidateTrack) {
-        // TODO Actually delete the track
-        res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
+        // if comment clientUploaderId from provided JWT token equals uploaderIdOfCandidateTrack; user has permission to delete this track
+        Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
+          if (err) return res.status(500).json({ message: "Error deleting track" });
+          res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
+        });
       } else {
-        res
-          .status(403)
-          .json({ message: "JWT token provided does not map to a user who has permission to delete this track." });
+        res.status(403).json({ message: "Unauthorized to delete this comment" });
       }
     }
   });

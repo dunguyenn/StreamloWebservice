@@ -106,7 +106,7 @@ describe("Track Service Integration Tests", function() {
   });
 
   after(function(done) {
-    var removeUserPromise = User.findOneAndRemove({ email: "test@hotmail.com" }).exec();
+    var removeUserPromise = User.findOneAndRemove({ _id: userMongoID }).exec();
     removeUserPromise.then(() => {
       app.close();
       return done();

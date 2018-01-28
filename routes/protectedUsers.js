@@ -18,4 +18,9 @@ protectedUserRoutes.patch("/:userId/displayname/:displayName", function(req, res
   return userController.updateDisplaynameByUserId(req, res);
 });
 
+// PATCH user information by userId
+protectedUserRoutes.patch("/:userId", function(req, res) {
+  return userController.updateUserByUserId(req, res);
+});
+
 module.exports = protectedUserRoutes;

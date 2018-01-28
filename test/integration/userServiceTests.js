@@ -30,7 +30,6 @@ describe("User Service Integration Tests", function() {
 
     User(testUserData)
       .save((err, user) => {
-        console.log(err);
         testUser = user;
         testUserToken = utilsJWT.generateToken(user);
       })
@@ -250,7 +249,7 @@ describe("User Service Integration Tests", function() {
           .end(done);
       });
 
-      it("returns status code 401 and correct message when no jwt access token header present", function(done) {
+      it("returns status code 401 when no jwt access token header present", function(done) {
         request(app)
           .patch("/users/" + testUser._id)
           .expect(401)
@@ -261,44 +260,7 @@ describe("User Service Integration Tests", function() {
           .end(done);
       });
 
-      it("returns status code 400 with invalid email", function(done) {
-        let invalidEmail = "invalidEmail";
-        request(app)
-          .patch("/users/" + testUser._id)
-          .set("x-access-token", testUserToken)
-          .send("email=" + invalidEmail)
-          .send("password=" + validNewPassword)
-          .send("userURL=" + validNewUserURL)
-          .send("displayName=" + validNewDisplayName)
-          .send("city=" + validNewCity)
-          .expect(400)
-          .expect(function(res) {
-            res.body.message.should.equal("Error updating user information");
-            res.body.errors.email.should.equal("Invalid email address");
-          })
-          .end(done);
-      });
-
-      it("returns status code 400 with duplicate email", function(done) {
-        let duplicateEmail = testUser.email;
-        request(app)
-          .patch("/users/" + testUser2._id)
-          .set("x-access-token", testUserToken)
-          .send("email=" + duplicateEmail)
-          .send("password=" + validNewPassword)
-          .send("userURL=" + validNewUserURL)
-          .send("displayName=" + validNewDisplayName)
-          .send("city=" + validNewCity)
-          .expect(403)
-          .expect(function(res) {
-            res.body.message.should.equal("Unauthorized to update this users information");
-          })
-          .end(done);
-      });
-
-      it("returns status code 403 jwt token that does not have permission to change information (different user)", function(done) {
-        let newDisplayName = "newdisplayname";
-
+      it("returns status code 403 with jwt token that does not have permission to change information (different user)", function(done) {
         request(app)
           .patch("/users/" + testUser._id)
           .set("x-access-token", testUser2Token)
@@ -307,6 +269,77 @@ describe("User Service Integration Tests", function() {
             res.body.message.should.equal("Unauthorized to update this users information");
           })
           .end(done);
+      });
+
+      describe("PATCH users/:userId BODY=email", function() {
+        it("returns status code 400 with invalid email", function(done) {
+          let invalidEmail = "invalidEmail";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + invalidEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.email.should.equal("Invalid email address");
+            })
+            .end(done);
+        });
+
+        it("returns status code 400 with duplicate email", function(done) {
+          let duplicateEmail = testUser.email;
+          request(app)
+            .patch("/users/" + testUser2._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + duplicateEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(403)
+            .expect(function(res) {
+              res.body.message.should.equal("Unauthorized to update this users information");
+            })
+            .end(done);
+        });
+      });
+
+      describe("PATCH users/:userId BODY=password", function() {
+        it("returns status code 400 with password under 8 characters", function(done) {
+          let passwordUnder8Char = "123";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + passwordUnder8Char)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.password.should.equal("Password is under the minimum length of 8 characters");
+            })
+            .end(done);
+        });
+
+        it.skip("returns status code 400 with password over 50 characters", function(done) {});
+      });
+
+      describe("PATCH users/:userId BODY=userURL", function() {
+        it.skip("returns status code 400 with duplicate userURL", function(done) {});
+      });
+
+      describe("PATCH users/:userId BODY=displayName", function() {
+        it.skip("returns status code 400 with display name over 20 characters", function(done) {});
+      });
+
+      describe("PATCH users/:userId BODY=city", function() {
+        it.skip("returns status code 400 with invalid city name", function(done) {});
       });
     });
 

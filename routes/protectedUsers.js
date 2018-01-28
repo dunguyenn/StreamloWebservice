@@ -13,11 +13,6 @@ protectedUserRoutes.post("/:userURL/addProfilePicture", upload.single("profilePi
   return userController.addProfilePictureToUser(req, res);
 });
 
-// PATCH user displayName by userId
-protectedUserRoutes.patch("/:userId/displayname/:displayName", function(req, res) {
-  return userController.updateDisplaynameByUserId(req, res);
-});
-
 // PATCH user information by userId
 protectedUserRoutes.patch("/:userId", function(req, res) {
   return userController.updateUserByUserId(req, res);

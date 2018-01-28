@@ -9,7 +9,8 @@ describe("User Service Integration Tests", function() {
   let app;
   let testUser;
   let testUser2;
-  var testUserToken;
+  let testUserToken;
+  let testUser2Token;
 
   const userMongoID = "5a2d83d81b815cd544df5468";
   const userMongoID2 = "5a2d83d81b815cd644df5469";
@@ -46,6 +47,7 @@ describe("User Service Integration Tests", function() {
 
         User(testUserData).save((err, user) => {
           testUser2 = user;
+          testUser2Token = utilsJWT.generateToken(user);
           done();
         });
       });
@@ -226,21 +228,21 @@ describe("User Service Integration Tests", function() {
 
   describe("Protected User Endpoints", function() {
     describe("PATCH users/:userId", function() {
-      it("returns status code 200 when updating with valid email, password, userURL, displayName and city", function(done) {
-        let newEmail = "updatedemail@hotmail.com";
-        let newPassword = "updatedpassword";
-        let newUserURL = "updateduserurl";
-        let newDisplayName = "updatedDisplayName";
-        let newCity = "Derry";
+      let validNewEmail = "updatedemail@hotmail.com";
+      let validNewPassword = "updatedpassword";
+      let validNewUserURL = "updateduserurl";
+      let validNewDisplayName = "updatedDisplayName";
+      let validNewCity = "Derry";
 
+      it("returns status code 200 when updating with valid email, password, userURL, displayName and city", function(done) {
         request(app)
           .patch("/users/" + testUser._id)
           .set("x-access-token", testUserToken)
-          .send("email=" + newEmail)
-          .send("password=" + newPassword)
-          .send("userURL=" + newUserURL)
-          .send("displayName=" + newDisplayName)
-          .send("city=" + newCity)
+          .send("email=" + validNewEmail)
+          .send("password=" + validNewPassword)
+          .send("userURL=" + validNewUserURL)
+          .send("displayName=" + validNewDisplayName)
+          .send("city=" + validNewCity)
           .expect(200)
           .expect(function(res) {
             res.body.message.should.equal("User information updated successfully");
@@ -259,109 +261,54 @@ describe("User Service Integration Tests", function() {
           .end(done);
       });
 
-      it.skip("returns status code 400 with invalid userId", function(done) {
-        let newDisplayName = "newdisplayname";
-        let invalidUserId = "abc";
+      it("returns status code 400 with invalid email", function(done) {
+        let invalidEmail = "invalidEmail";
         request(app)
           .patch("/users/" + testUser._id)
           .set("x-access-token", testUserToken)
+          .send("email=" + invalidEmail)
+          .send("password=" + validNewPassword)
+          .send("userURL=" + validNewUserURL)
+          .send("displayName=" + validNewDisplayName)
+          .send("city=" + validNewCity)
           .expect(400)
           .expect(function(res) {
-            res.body.message.should.equal("Invalid userId in request");
+            res.body.message.should.equal("Error updating user information");
+            res.body.errors.email.should.equal("Invalid email address");
           })
           .end(done);
       });
 
-      it.skip("returns status code 404 with non-existent userId", function(done) {
-        let newDisplayName = "newdisplayname";
-        let validButRandomUserId = "5a47f85d6a166cccb6729d5b";
+      it("returns status code 400 with duplicate email", function(done) {
+        let duplicateEmail = testUser.email;
         request(app)
-          .patch("/users/" + testUser._id)
+          .patch("/users/" + testUser2._id)
           .set("x-access-token", testUserToken)
-          .expect(404)
-          .expect(function(res) {
-            res.body.message.should.equal("No user found with requested Id");
-          })
-          .end(done);
-      });
-
-      it.skip("returns status code 403 with userId that does not have permission to change name (different user)", function(done) {
-        let newDisplayName = "newdisplayname";
-
-        request(app)
-          .patch("/users/" + testUser._id)
-          .set("x-access-token", testUserToken)
+          .send("email=" + duplicateEmail)
+          .send("password=" + validNewPassword)
+          .send("userURL=" + validNewUserURL)
+          .send("displayName=" + validNewDisplayName)
+          .send("city=" + validNewCity)
           .expect(403)
           .expect(function(res) {
-            res.body.message.should.equal("Unauthorized to update this users display name");
+            res.body.message.should.equal("Unauthorized to update this users information");
+          })
+          .end(done);
+      });
+
+      it("returns status code 403 jwt token that does not have permission to change information (different user)", function(done) {
+        let newDisplayName = "newdisplayname";
+
+        request(app)
+          .patch("/users/" + testUser._id)
+          .set("x-access-token", testUser2Token)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to update this users information");
           })
           .end(done);
       });
     });
-
-    // describe.skip("PATCH users/:userId/displayname/:displayname", function() {
-    //   it("returns status code 200 with valid data", function(done) {
-    //     let newDisplayName = "newdisplayname";
-    //     request(app)
-    //       .patch("/users/" + testUser._id + "/displayname/" + newDisplayName)
-    //       .set("x-access-token", testUserToken)
-    //       .expect(200)
-    //       .expect(function(res) {
-    //         res.body.message.should.equal(`Display name successfully changed to '${newDisplayName}'`);
-    //       })
-    //       .end(done);
-    //   });
-    //
-    //   it("returns status code 401 and correct message when no jwt access token header present", function(done) {
-    //     request(app)
-    //       .patch("/users/" + testUser._id + "/displayname/" + "randomDisplayname")
-    //       .expect(401)
-    //       .expect(function(res) {
-    //         res.body.success.should.equal(false);
-    //         res.body.message.should.equal("No token provided.");
-    //       })
-    //       .end(done);
-    //   });
-    //
-    //   it("returns status code 400 with invalid userId", function(done) {
-    //     let newDisplayName = "newdisplayname";
-    //     let invalidUserId = "abc";
-    //     request(app)
-    //       .patch("/users/" + invalidUserId + "/displayname/" + newDisplayName)
-    //       .set("x-access-token", testUserToken)
-    //       .expect(400)
-    //       .expect(function(res) {
-    //         res.body.message.should.equal("Invalid userId in request");
-    //       })
-    //       .end(done);
-    //   });
-    //
-    //   it("returns status code 404 with non-existent userId", function(done) {
-    //     let newDisplayName = "newdisplayname";
-    //     let validButRandomUserId = "5a47f85d6a166cccb6729d5b";
-    //     request(app)
-    //       .patch("/users/" + validButRandomUserId + "/displayname/" + newDisplayName)
-    //       .set("x-access-token", testUserToken)
-    //       .expect(404)
-    //       .expect(function(res) {
-    //         res.body.message.should.equal("No user found with requested Id");
-    //       })
-    //       .end(done);
-    //   });
-    //
-    //   it("returns status code 403 with userId that does not have permission to change name (different user)", function(done) {
-    //     let newDisplayName = "newdisplayname";
-    //
-    //     request(app)
-    //       .patch("/users/" + testUser2._id + "/displayname/" + newDisplayName)
-    //       .set("x-access-token", testUserToken)
-    //       .expect(403)
-    //       .expect(function(res) {
-    //         res.body.message.should.equal("Unauthorized to update this users display name");
-    //       })
-    //       .end(done);
-    //   });
-    // });
 
     describe("POST users/:userURL/addProfilePicture", function() {
       it.skip("returns status code 200 with valid data", function(done) {});

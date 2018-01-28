@@ -108,31 +108,6 @@ exports.getUserById = function(req, res) {
   }
 };
 
-// TODO incorporate this controller into updateUserByUserId controller
-exports.updateDisplaynameByUserId = (req, res) => {
-  let userId = req.params.userId;
-  let candidateDisplayName = req.params.displayName;
-  let requestorDecodedJWTToken = req.decoded;
-
-  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
-
-  User.findOne({ _id: userId }, (err, user) => {
-    if (err) return res.status(500).json({ message: "Error updating username" });
-    if (!user) return res.status(404).json({ message: "No user found with requested Id" });
-
-    // check if requestor has permission to update this displayname (requestors userId is equal to userId of returned user document)
-    if (requestorDecodedJWTToken.userId == user._id) {
-      user.displayName = candidateDisplayName;
-      user.save({ validateBeforeSave: true }, err => {
-        if (err) return res.status(500).json({ message: "Error updating display name" });
-        return res.status(200).json({ message: `Display name successfully changed to '${candidateDisplayName}'` });
-      });
-    } else {
-      return res.status(403).json({ message: "Unauthorized to update this users display name" });
-    }
-  });
-};
-
 exports.updateUserByUserId = (req, res) => {
   let userId = req.params.userId;
   if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
@@ -189,8 +164,7 @@ function constructResponseErrorsFromMongooseError(err, cb) {
   patt = new RegExp(/userURL/);
   let isDuplicateUserURL = patt.test(err.message);
   if (isDuplicateUserURL) {
-    // responseErrors.userURL = "An account with this userURL already exists";
-    err.errors = { userURL: "An account with this userURL already exists" };
+    responseErrors.userURL = "An account with this userURL already exists";
   }
 
   // check if password constraints error thrown from user model pre-save hook

@@ -327,19 +327,83 @@ describe("User Service Integration Tests", function() {
             .end(done);
         });
 
-        it.skip("returns status code 400 with password over 50 characters", function(done) {});
+        it("returns status code 400 with password over 50 characters", function(done) {
+          let passwordOver50Char = "111111111111111111111111111111111111111111111111111";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + passwordOver50Char)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.password.should.equal("Password is over the maximum length of 50 characters");
+            })
+            .end(done);
+        });
       });
 
       describe("PATCH users/:userId BODY=userURL", function() {
-        it.skip("returns status code 400 with duplicate userURL", function(done) {});
+        it("returns status code 400 when attempting to update userURL to a userURL that another user has", function(done) {
+          let duplicateUserURL = testUser2.userURL;
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + duplicateUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.userURL.should.equal("An account with this userURL already exists");
+            })
+            .end(done);
+        });
       });
 
       describe("PATCH users/:userId BODY=displayName", function() {
-        it.skip("returns status code 400 with display name over 20 characters", function(done) {});
+        it("returns status code 400 with display name over 20 characters", function(done) {
+          let displayNameExceeding20Char = "stringPaddedTo21Chars";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + displayNameExceeding20Char)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.displayName.should.equal("Display name exceeds maximum length of 20 characters");
+            })
+            .end(done);
+        });
       });
 
       describe("PATCH users/:userId BODY=city", function() {
-        it.skip("returns status code 400 with invalid city name", function(done) {});
+        it("returns status code 400 with invalid city name", function(done) {
+          let invalidCity = "geneva";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + invalidCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.city.should.equal("Invalid city. Valid cities include Belfast or Derry");
+            })
+            .end(done);
+        });
       });
     });
 

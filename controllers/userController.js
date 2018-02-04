@@ -200,6 +200,28 @@ function constructResponseErrorsFromMongooseError(err, cb) {
       default:
     }
   }
-
   cb(responseErrors);
 }
+
+exports.deleteUserByUserId = (req, res) => {
+  let userId = req.params.userId;
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: userId }, (err, user) => {
+    // if mongoError thrown, or no user found return 404
+    if (err) return res.status(500).json({ message: "Error deleting user account" });
+    if (!user) return res.status(404).json({ message: "No user associated with this Id" });
+
+    // check if requestor has permission to delete this user (requestors userId present in jwt token is equal to userId of returned user document)
+    if (requestorUserIdFromDecodedJWTToken == user._id) {
+      User.findOneAndRemove({ id: userId }, err => {
+        if (err) return res.status(500).json({ message: "Error deleting user account" });
+        return res.status(200).json({ message: "User deleted successfully" });
+      });
+    } else {
+      return res.status(403).json({ message: "Unauthorized to delete this user" });
+    }
+  });
+};

@@ -18,4 +18,9 @@ protectedUserRoutes.patch("/:userId", function(req, res) {
   return userController.updateUserByUserId(req, res);
 });
 
+// DELETE user by userId
+protectedUserRoutes.delete("/:userId", function(req, res) {
+  return userController.deleteUserByUserId(req, res);
+});
+
 module.exports = protectedUserRoutes;

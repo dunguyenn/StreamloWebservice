@@ -343,6 +343,92 @@ describe("User Service Integration Tests", function() {
       });
     });
 
+    describe("DELETE users/:userId", function() {
+      let deleteTestUser;
+      let deleteTestUserToken;
+
+      before(function(done) {
+        // create test user for use with "DELETE users/:userId" tests
+        const testUserData = new User({
+          email: "deleteTestUser@hotmail.com",
+          password: "password",
+          userURL: "deleteTestUser1",
+          displayName: "testDisplayName",
+          city: "Belfast",
+          uploadedTracks: undefined
+        });
+
+        User(testUserData).save((err, user) => {
+          deleteTestUser = user;
+          deleteTestUserToken = utilsJWT.generateToken(user);
+          return done();
+        });
+      });
+
+      // Delete "deleteTestUser" even if test fails
+      after(function(done) {
+        User.findOneAndRemove({ _id: deleteTestUser._id }, err => {
+          return done();
+        });
+      });
+
+      it("returns status code 200 with userId that is valid and maps to an existing user", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .set("x-access-token", deleteTestUserToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("User deleted successfully");
+          })
+          .end(done);
+      });
+
+      it("returns status code 401 when no JWT token present in header", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .expect(401)
+          .expect(function(res) {
+            res.body.message.should.equal("No token provided.");
+          })
+          .end(done);
+      });
+
+      it("returns status code 403 when user does not have permission to delete this user", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .set("x-access-token", testUserToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this user");
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 with valid userId that does not map to an existing user", function(done) {
+        let validUserIdForNonExistentUser = "6a2d83d81b815cd544df5468";
+        request(app)
+          .delete("/users/" + validUserIdForNonExistentUser)
+          .set("x-access-token", deleteTestUserToken)
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal("No user associated with this Id");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 with invalid userId", function(done) {
+        let invalidUserId = "123";
+        request(app)
+          .delete("/users/" + invalidUserId)
+          .set("x-access-token", deleteTestUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid userId in request");
+          })
+          .end(done);
+      });
+    });
+
     describe("POST users/:userURL/addProfilePicture", function() {
       it.skip("returns status code 200 with valid data", function(done) {});
 

@@ -216,7 +216,7 @@ exports.deleteUserByUserId = (req, res) => {
 
     // check if requestor has permission to delete this user (requestors userId present in jwt token is equal to userId of returned user document)
     if (requestorUserIdFromDecodedJWTToken == user._id) {
-      User.findOneAndRemove({ id: userId }, err => {
+      User.findOneAndRemove({ _id: userId }, (err, doc, result) => {
         if (err) return res.status(500).json({ message: "Error deleting user account" });
         return res.status(200).json({ message: "User deleted successfully" });
       });

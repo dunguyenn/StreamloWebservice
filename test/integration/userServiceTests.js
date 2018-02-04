@@ -436,6 +436,17 @@ describe("User Service Integration Tests", function() {
         });
       });
 
+      it("returns status code 403 when user does not have permission to delete this user", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .set("x-access-token", testUserToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this user");
+          })
+          .end(done);
+      });
+
       it("returns status code 200 with userId that is valid and maps to an existing user", function(done) {
         request(app)
           .delete("/users/" + deleteTestUser._id)
@@ -453,17 +464,6 @@ describe("User Service Integration Tests", function() {
           .expect(401)
           .expect(function(res) {
             res.body.message.should.equal("No token provided.");
-          })
-          .end(done);
-      });
-
-      it("returns status code 403 when user does not have permission to delete this user", function(done) {
-        request(app)
-          .delete("/users/" + deleteTestUser._id)
-          .set("x-access-token", testUserToken)
-          .expect(403)
-          .expect(function(res) {
-            res.body.message.should.equal("Unauthorized to delete this user");
           })
           .end(done);
       });

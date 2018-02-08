@@ -71,7 +71,7 @@ var trackSchema = new Schema({
     type: String,
     required: true,
     maxlength: 20,
-    minLength: 5,
+    minlength: 5,
     enum: cityEnu
   },
   numPlays: {

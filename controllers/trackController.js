@@ -317,15 +317,47 @@ exports.deleteTrackByTrackURL = function(req, res) {
     else if (track.length == 0) {
       res.status(404).json({ message: "No track with this trackURL found on the system" });
     } else {
-      let uploaderIdOfCandidateTrack = track[0].uploaderId;
+      let candidateTrackToBeDeleted = track[0];
+      let uploaderIdOfCandidateTrack = candidateTrackToBeDeleted.uploaderId;
       let clientUploaderId = req.decoded.userId;
 
       if (clientUploaderId == uploaderIdOfCandidateTrack) {
-        res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
+        // if clientUploaderId from provided JWT token equals uploaderId Of CandidateTrack; user has permission to delete this track
+        Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
+          if (err) return res.status(500).json({ message: "Error deleting track" });
+          res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
+        });
       } else {
-        res
-          .status(403)
-          .json({ message: "JWT token provided does not map to a user who has permission to delete this track." });
+        res.status(403).json({ message: "Unauthorized to delete this track" });
+      }
+    }
+  });
+};
+
+exports.deleteTrackByTrackId = function(req, res) {
+  let trackId = req.params.trackId;
+
+  let query = Track.find({
+    _id: trackId
+  });
+
+  query.exec(function(err, track) {
+    if (err) return res.sendStatus(500);
+    else if (track.length == 0) {
+      res.status(404).json({ message: "No track with this trackId found on the system" });
+    } else {
+      let candidateTrackToBeDeleted = track[0];
+      let uploaderIdOfCandidateTrack = candidateTrackToBeDeleted.uploaderId;
+      let clientUploaderId = req.decoded.userId;
+
+      if (clientUploaderId == uploaderIdOfCandidateTrack) {
+        // if clientUploaderId from provided JWT token equals uploaderId Of CandidateTrack; user has permission to delete this track
+        Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
+          if (err) return res.status(500).json({ message: "Error deleting track" });
+          res.status(200).json({ message: `Track with trackId '${trackId}' deleted successfully` });
+        });
+      } else {
+        res.status(403).json({ message: "Unauthorized to delete this track" });
       }
     }
   });
@@ -422,6 +454,59 @@ exports.addCommentToTrackByTrackURL = function(req, res) {
       });
     });
   }
+};
+
+function validateDeleteCommentReq(req) {
+  let commentId = req.params.commentId;
+
+  if (!commentId) {
+    return { success: false, message: "No commmentId in request body" };
+  } else if (!ObjectID.isValid(commentId)) {
+    return { success: false, message: "Invalid commentId in request body" };
+  }
+
+  return { success: true };
+}
+
+exports.removeCommentFromTrackByCommentId = (req, res) => {
+  const validationResult = validateDeleteCommentReq(req);
+  if (!validationResult.success) {
+    return res.status(400).json({
+      message: validationResult.message
+    });
+  }
+
+  let commentId = req.params.commentId;
+  let decodedUserIdFromProvidedJWTToken = req.decoded.userId;
+
+  Track.findOne(
+    {
+      "comments._id": commentId
+    },
+    function(err, track) {
+      if (!track) return res.status(400).json({ message: "Comment not found" });
+      // get comment with _id = commentId
+      let trackComments = track.comments;
+      function findCommentById(comment) {
+        return comment._id == commentId;
+      }
+
+      let matchingCommentIndex = trackComments.findIndex(findCommentById);
+      let mathcingCommentToRemove = trackComments[matchingCommentIndex];
+
+      if (mathcingCommentToRemove.user == decodedUserIdFromProvidedJWTToken) {
+        // if comment userId equals userId from provided JWT Token; user has permission to delete this comment
+        track.comments.pull(commentId);
+        track.numComments = track.numComments - 1;
+        track.save({ validateBeforeSave: false }, error => {
+          if (err) return res.status(500).json({ message: "Error deleting comment" });
+          return res.status(200).json({ message: "Comment deleted" });
+        });
+      } else {
+        return res.status(403).json({ message: "Unauthorized to delete this comment" });
+      }
+    }
+  );
 };
 
 exports.updateTrackDescriptionByTrackURL = (req, res) => {

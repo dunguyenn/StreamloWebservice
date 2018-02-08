@@ -34,9 +34,7 @@ var userSchema = new Schema({
   },
   password: {
     type: String,
-    required: true,
-    maxlength: 50,
-    minLength: 8
+    required: true
   },
   userURL: {
     type: String,
@@ -65,10 +63,6 @@ var userSchema = new Schema({
   numberOfTracksUploaded: {
     type: Number,
     default: 0
-  },
-  description: {
-    type: String,
-    maxlength: 100
   },
   profilePictureBinary: {
     type: ObjectId
@@ -109,6 +103,18 @@ userSchema.pre("save", function saveHook(next) {
 
   // proceed further only if the password is modified or the user is new
   if (!user.isModified("password")) return next();
+
+  // check if candidate password is within password constraints
+  let candidatePasswordLength = user.password.length;
+  if (candidatePasswordLength < 8) {
+    let validationError = new Error("Password constraints error. Password is under the minimum length of 8 characters");
+    return next(validationError);
+  }
+
+  if (candidatePasswordLength > 50) {
+    let validationError = new Error("Password constraints error. Password is over the maximum length of 50 characters");
+    return next(validationError);
+  }
 
   // Generate a salt
   return bcrypt.genSalt(SALT_WORK_FACTOR, (saltError, salt) => {

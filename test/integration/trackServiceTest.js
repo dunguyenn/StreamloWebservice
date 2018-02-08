@@ -69,11 +69,18 @@ describe("Track Service Integration Tests", function() {
             uploaderId: userMongoID,
             description: "testDesc",
             trackBinaryId: trackGridFSId,
-            comments: {
-              user: trackMongoID,
-              datePosted: moment(),
-              body: "testCommentBody"
-            }
+            comments: [
+              {
+                user: userMongoID,
+                datePosted: moment(),
+                body: "testCommentBody"
+              },
+              {
+                user: userMongoID,
+                datePosted: moment(),
+                body: "testCommentBody"
+              }
+            ]
           });
 
           Track(testTrack).save((err, track) => {
@@ -99,7 +106,7 @@ describe("Track Service Integration Tests", function() {
   });
 
   after(function(done) {
-    var removeUserPromise = User.findOneAndRemove({ email: "test@hotmail.com" }).exec();
+    var removeUserPromise = User.findOneAndRemove({ _id: userMongoID }).exec();
     removeUserPromise.then(() => {
       app.close();
       return done();
@@ -274,11 +281,6 @@ describe("Track Service Integration Tests", function() {
           .expect(function(res) {
             let comments = res.body.comments;
             assert.isArray(comments);
-            assert.lengthOf(comments, 1);
-            assert.isString(comments[0]._id);
-            assert.isString(comments[0].body);
-            assert.isString(comments[0].datePosted);
-            assert.isString(comments[0].user);
           })
           .end(done);
       });
@@ -290,11 +292,6 @@ describe("Track Service Integration Tests", function() {
           .expect(function(res) {
             let comments = res.body.comments;
             assert.isArray(comments);
-            assert.lengthOf(comments, 1);
-            assert.isString(comments[0]._id);
-            assert.isString(comments[0].body);
-            assert.isString(comments[0].datePosted);
-            assert.isString(comments[0].user);
           })
           .end(done);
       });
@@ -832,11 +829,86 @@ describe("Track Service Integration Tests", function() {
       });
     });
 
-    describe("DELETE /tracks/:trackURL", function() {
+    describe("DELETE /tracks/comments/:commentId", function() {
+      let testUserWithoutPermissionToDeleteTrack;
+      let testUserWithoutPermissionToDeleteTrackToken;
+
+      before(function(done) {
+        const testUserData = new User({
+          email: "deleteTest2@hotmail.com",
+          password: "password",
+          userURL: "deleteTestURL2",
+          displayName: "deleteTestDispName",
+          city: "Belfast"
+        });
+
+        User(testUserData).save((err, user) => {
+          testUserWithoutPermissionToDeleteTrack = user;
+          testUserWithoutPermissionToDeleteTrackToken = utilsJWT.generateToken(user);
+          done();
+        });
+      });
+
+      after(function(done) {
+        User.findByIdAndRemove(testUserWithoutPermissionToDeleteTrack._id, () => {
+          done();
+        });
+      });
+
+      it("returns status code 200 and correct message with valid commentId", function(done) {
+        request(app)
+          .delete("/tracks/comments/" + testTrack.comments[0]._id)
+          .set("x-access-token", testUserToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("Comment deleted");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 and correct message with invalid commentId sent", function(done) {
+        request(app)
+          .delete("/tracks/comments/" + "12345")
+          .set("x-access-token", testUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid commentId in request body");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 and correct message with non existent comment", function(done) {
+        let nonExistentCommentId = "6a6606fe26917d767dd4991a";
+        request(app)
+          .delete("/tracks/comments/" + nonExistentCommentId)
+          .set("x-access-token", testUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Comment not found");
+          })
+          .end(done);
+      });
+
+      it("returns status code 403 and correct message when user doesnt have permission to delete comment", function(done) {
+        request(app)
+          .delete("/tracks/comments/" + testTrack.comments[1]._id)
+          .set("x-access-token", testUserWithoutPermissionToDeleteTrackToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this comment");
+          })
+          .end(done);
+      });
+    });
+
+    describe("DELETE /tracks/trackurl/:trackURL", function() {
+      let deleteTestTrackURL;
+
       let testUserWithNoUploadedTracks;
       let testUserWithNoUploadedTracksToken;
 
       before(function(done) {
+        deleteTestTrackURL = `/tracks/trackurl/${testTrack.trackURL}`;
         const testUserData = new User({
           email: "deleteTest@hotmail.com",
           password: "password",
@@ -857,10 +929,19 @@ describe("Track Service Integration Tests", function() {
           return done();
         });
       });
-
+      it("returns status code 403 and correct message when logged in user did not upload the track and therfore does not have permission to delete it", function(done) {
+        request(app)
+          .delete(deleteTestTrackURL)
+          .set("x-access-token", testUserWithNoUploadedTracksToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this track");
+          })
+          .end(done);
+      });
       it("returns status code 200 with valid data", function(done) {
         request(app)
-          .delete(`/tracks/${testTrack.trackURL}`)
+          .delete(deleteTestTrackURL)
           .set("x-access-token", testUserToken)
           .expect(200)
           .expect(function(res) {
@@ -868,21 +949,9 @@ describe("Track Service Integration Tests", function() {
           })
           .end(done);
       });
-      it("returns status code 403 and correct message when logged in user did not upload the track and therfore does not have permission to delete it", function(done) {
-        request(app)
-          .delete(`/tracks/${testTrack.trackURL}`)
-          .set("x-access-token", testUserWithNoUploadedTracksToken)
-          .expect(403)
-          .expect(function(res) {
-            res.body.message.should.equal(
-              "JWT token provided does not map to a user who has permission to delete this track."
-            );
-          })
-          .end(done);
-      });
       it("returns status code 404 with valid data when trackURL supplied does not map to a track on the system", function(done) {
         request(app)
-          .delete(`/tracks/nonExistentTrackURL`)
+          .delete(`/tracks/trackurl/nonExistentTrackURL`)
           .set("x-access-token", testUserToken)
           .expect(404)
           .expect(function(res) {
@@ -892,7 +961,146 @@ describe("Track Service Integration Tests", function() {
       });
       it("returns status code 401 and correct message when no jwt access token header present", function(done) {
         request(app)
-          .delete(`/tracks/${testTrack.trackURL}`)
+          .delete(deleteTestTrackURL)
+          .expect(401)
+          .expect(function(res) {
+            res.body.success.should.equal(false);
+            res.body.message.should.equal("No token provided.");
+          })
+          .end(done);
+      });
+    });
+
+    describe("DELETE /tracks/:trackId", function() {
+      let deleteTestTrackByIdURL;
+
+      let testUserWithNoUploadedTracks;
+      let testUserWithNoUploadedTracksToken;
+
+      let testUserWithSingleUploadedTrack;
+      let testUserWithSingleUploadedTrackJWTToken;
+
+      before(function(done) {
+        const testUserData = new User({
+          email: "deleteTest@hotmail.com",
+          password: "password",
+          userURL: "deleteTestURL",
+          displayName: "deleteTestDispName",
+          city: "Belfast"
+        });
+
+        User(testUserData).save((err, user) => {
+          testUserWithNoUploadedTracks = user;
+          testUserWithNoUploadedTracksToken = utilsJWT.generateToken(user);
+
+          const testUserData2 = new User({
+            email: "deleteTest2@hotmail.com",
+            password: "password",
+            userURL: "deleteTestURL2",
+            displayName: "deleteTestDispName",
+            city: "Belfast"
+          });
+
+          User(testUserData2)
+            .save((err, user2) => {
+              testUserWithSingleUploadedTrack = user2;
+              testUserWithSingleUploadedTrackJWTToken = utilsJWT.generateToken(user2);
+            })
+            .then(() => {
+              // Add test track to database in order to test against.
+              const readableTrackStream = new Readable();
+              readableTrackStream.push(fs.readFileSync("test/littleidea.mp3"));
+              readableTrackStream.push(null);
+
+              let db = mongoose.connection.db;
+              let bucket = new mongodb.GridFSBucket(db, {
+                bucketName: "trackBinaryFiles"
+              });
+              let uploadStream = bucket.openUploadStream("little idea", { contentType: "audio/mp3" });
+              trackGridFSId = uploadStream.id;
+              readableTrackStream.pipe(uploadStream);
+
+              uploadStream.on("finish", () => {
+                testTrack = new Track({
+                  title: "testDeleteTrack",
+                  genre: "Pop",
+                  city: "Belfast",
+                  trackURL: "testDeleteTrack",
+                  dateUploaded: moment().add(30, "minute"),
+                  uploaderId: testUserWithSingleUploadedTrack._id,
+                  description: "testDesc",
+                  trackBinaryId: trackGridFSId
+                });
+
+                Track(testTrack).save((err, track) => {
+                  deleteTestTrackByIdURL = `/tracks/${track._id}`;
+                  User.findOneAndUpdate(
+                    { _id: userMongoID },
+                    {
+                      $push: {
+                        uploadedTracks: {
+                          trackID: trackMongoID
+                        }
+                      },
+                      $inc: {
+                        numberOfTracksUploaded: 1
+                      }
+                    },
+                    (err, doc) => {
+                      return done();
+                    }
+                  );
+                });
+              });
+            });
+        });
+      });
+
+      after(function(done) {
+        User.findByIdAndRemove(testUserWithNoUploadedTracks._id, () => {
+          User.findByIdAndRemove(testUserWithSingleUploadedTrack._id, () => {
+            return done();
+          });
+        });
+      });
+
+      it("returns status code 403 and correct message when logged in user did not upload the track and therefore does not have permission to delete it", function(done) {
+        request(app)
+          .delete(deleteTestTrackByIdURL)
+          .set("x-access-token", testUserWithNoUploadedTracksToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this track");
+          })
+          .end(done);
+      });
+
+      it("returns status code 200 with valid data", function(done) {
+        request(app)
+          .delete(deleteTestTrackByIdURL)
+          .set("x-access-token", testUserWithSingleUploadedTrackJWTToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal(`Track with trackId '${testTrack._id}' deleted successfully`);
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 with valid data when trackId supplied does not map to a track on the system", function(done) {
+        let validTrackIdForNonExistentTrack = "5a6753deb1a7364cb6e629bb";
+        request(app)
+          .delete("/tracks/" + validTrackIdForNonExistentTrack)
+          .set("x-access-token", testUserToken)
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal("No track with this trackId found on the system");
+          })
+          .end(done);
+      });
+
+      it("returns status code 401 and correct message when no jwt access token header present", function(done) {
+        request(app)
+          .delete(deleteTestTrackByIdURL)
           .expect(401)
           .expect(function(res) {
             res.body.success.should.equal(false);

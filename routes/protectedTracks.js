@@ -16,6 +16,11 @@ protectedTrackRoutes.post("/:trackURL/comments", function(req, res) {
   return trackController.addCommentToTrackByTrackURL(req, res);
 });
 
+// Delete comment by trackURL and commmentId
+protectedTrackRoutes.delete("/comments/:commentId", function(req, res) {
+  return trackController.removeCommentFromTrackByCommentId(req, res);
+});
+
 // Update track description by trackURL
 protectedTrackRoutes.patch("/:trackURL/description", function(req, res) {
   return trackController.updateTrackDescriptionByTrackURL(req, res);
@@ -27,8 +32,13 @@ protectedTrackRoutes.patch("/:trackURL/title", function(req, res) {
 });
 
 // Delete track by trackURL
-protectedTrackRoutes.delete("/:trackURL", function(req, res) {
+protectedTrackRoutes.delete("/trackurl/:trackURL", function(req, res) {
   return trackController.deleteTrackByTrackURL(req, res);
+});
+
+// Delete track by trackId
+protectedTrackRoutes.delete("/:trackId", function(req, res) {
+  return trackController.deleteTrackByTrackId(req, res);
 });
 
 module.exports = protectedTrackRoutes;

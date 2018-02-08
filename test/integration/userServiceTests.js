@@ -1,15 +1,18 @@
 const request = require("supertest");
 const chai = require("chai");
-
 const assert = chai.assert;
 
 const User = require("../../models/userModel.js");
+const utilsJWT = require("../../utils/jwt");
 
 describe("User Service Integration Tests", function() {
   let app;
   let testUser;
+  let testUser2;
+  let testUserToken;
+  let testUser2Token;
 
-  const userMongoID = "5a2d83d81b815cd644df5468";
+  const userMongoID = "5a2d83d81b815cd544df5468";
   const userMongoID2 = "5a2d83d81b815cd644df5469";
 
   before(function(done) {
@@ -17,9 +20,9 @@ describe("User Service Integration Tests", function() {
     // create test user for use with user service tests
     const testUserData = new User({
       _id: userMongoID,
-      email: "test@hotmail.com",
+      email: "test1@hotmail.com",
       password: "password",
-      userURL: "testurl",
+      userURL: "testurl1",
       displayName: "testDisplayName",
       city: "Belfast",
       uploadedTracks: undefined
@@ -28,6 +31,7 @@ describe("User Service Integration Tests", function() {
     User(testUserData)
       .save((err, user) => {
         testUser = user;
+        testUserToken = utilsJWT.generateToken(user);
       })
       .then(() => {
         const testUserData = new User({
@@ -41,15 +45,17 @@ describe("User Service Integration Tests", function() {
         });
 
         User(testUserData).save((err, user) => {
+          testUser2 = user;
+          testUser2Token = utilsJWT.generateToken(user);
           done();
         });
       });
   });
 
   after(function(done) {
-    var removeUserPromise = User.findOneAndRemove({ email: "test@hotmail.com" }).exec();
+    var removeUserPromise = User.findOneAndRemove({ _id: userMongoID }).exec();
     removeUserPromise.then(() => {
-      User.findOneAndRemove({ email: "test2@hotmail.com" }, () => {
+      User.findOneAndRemove({ _id: userMongoID2 }, () => {
         app.close();
         return done();
       });
@@ -220,6 +226,273 @@ describe("User Service Integration Tests", function() {
   });
 
   describe("Protected User Endpoints", function() {
+    describe("PATCH users/:userId", function() {
+      let validNewEmail = "updatedemail@hotmail.com";
+      let validNewPassword = "updatedpassword";
+      let validNewUserURL = "updateduserurl";
+      let validNewDisplayName = "updatedDisplayName";
+      let validNewCity = "Derry";
+
+      it("returns status code 200 when updating with valid email, password, userURL, displayName and city", function(done) {
+        request(app)
+          .patch("/users/" + testUser._id)
+          .set("x-access-token", testUserToken)
+          .send("email=" + validNewEmail)
+          .send("password=" + validNewPassword)
+          .send("userURL=" + validNewUserURL)
+          .send("displayName=" + validNewDisplayName)
+          .send("city=" + validNewCity)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("User information updated successfully");
+          })
+          .end(done);
+      });
+
+      it("returns status code 401 when no jwt access token header present", function(done) {
+        request(app)
+          .patch("/users/" + testUser._id)
+          .expect(401)
+          .expect(function(res) {
+            res.body.success.should.equal(false);
+            res.body.message.should.equal("No token provided.");
+          })
+          .end(done);
+      });
+
+      it("returns status code 403 with jwt token that does not have permission to change information (different user)", function(done) {
+        request(app)
+          .patch("/users/" + testUser._id)
+          .set("x-access-token", testUser2Token)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to update this users information");
+          })
+          .end(done);
+      });
+
+      describe("PATCH users/:userId BODY=email", function() {
+        it("returns status code 400 with invalid email", function(done) {
+          let invalidEmail = "invalidEmail";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + invalidEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.email.should.equal("Invalid email address");
+            })
+            .end(done);
+        });
+
+        it("returns status code 400 with duplicate email", function(done) {
+          let duplicateEmail = testUser.email;
+          request(app)
+            .patch("/users/" + testUser2._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + duplicateEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(403)
+            .expect(function(res) {
+              res.body.message.should.equal("Unauthorized to update this users information");
+            })
+            .end(done);
+        });
+      });
+
+      describe("PATCH users/:userId BODY=password", function() {
+        it("returns status code 400 with password under 8 characters", function(done) {
+          let passwordUnder8Char = "123";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + passwordUnder8Char)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.password.should.equal("Password is under the minimum length of 8 characters");
+            })
+            .end(done);
+        });
+
+        it("returns status code 400 with password over 50 characters", function(done) {
+          let passwordOver50Char = "111111111111111111111111111111111111111111111111111";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + passwordOver50Char)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.password.should.equal("Password is over the maximum length of 50 characters");
+            })
+            .end(done);
+        });
+      });
+
+      describe("PATCH users/:userId BODY=userURL", function() {
+        it("returns status code 400 when attempting to update userURL to a userURL that another user has", function(done) {
+          let duplicateUserURL = testUser2.userURL;
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + duplicateUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.userURL.should.equal("An account with this userURL already exists");
+            })
+            .end(done);
+        });
+      });
+
+      describe("PATCH users/:userId BODY=displayName", function() {
+        it("returns status code 400 with display name over 20 characters", function(done) {
+          let displayNameExceeding20Char = "stringPaddedTo21Chars";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + displayNameExceeding20Char)
+            .send("city=" + validNewCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.displayName.should.equal("Display name exceeds maximum length of 20 characters");
+            })
+            .end(done);
+        });
+      });
+
+      describe("PATCH users/:userId BODY=city", function() {
+        it("returns status code 400 with invalid city name", function(done) {
+          let invalidCity = "geneva";
+          request(app)
+            .patch("/users/" + testUser._id)
+            .set("x-access-token", testUserToken)
+            .send("email=" + validNewEmail)
+            .send("password=" + validNewPassword)
+            .send("userURL=" + validNewUserURL)
+            .send("displayName=" + validNewDisplayName)
+            .send("city=" + invalidCity)
+            .expect(400)
+            .expect(function(res) {
+              res.body.message.should.equal("Error updating user information");
+              res.body.errors.city.should.equal("Invalid city. Valid cities include Belfast or Derry");
+            })
+            .end(done);
+        });
+      });
+    });
+
+    describe("DELETE users/:userId", function() {
+      let deleteTestUser;
+      let deleteTestUserToken;
+
+      before(function(done) {
+        // create test user for use with "DELETE users/:userId" tests
+        const testUserData = new User({
+          email: "deleteTestUser@hotmail.com",
+          password: "password",
+          userURL: "deleteTestUser1",
+          displayName: "testDisplayName",
+          city: "Belfast",
+          uploadedTracks: undefined
+        });
+
+        User(testUserData).save((err, user) => {
+          deleteTestUser = user;
+          deleteTestUserToken = utilsJWT.generateToken(user);
+          return done();
+        });
+      });
+
+      // Delete "deleteTestUser" even if test fails
+      after(function(done) {
+        User.findOneAndRemove({ _id: deleteTestUser._id }, err => {
+          return done();
+        });
+      });
+
+      it("returns status code 403 when user does not have permission to delete this user", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .set("x-access-token", testUserToken)
+          .expect(403)
+          .expect(function(res) {
+            res.body.message.should.equal("Unauthorized to delete this user");
+          })
+          .end(done);
+      });
+
+      it("returns status code 200 with userId that is valid and maps to an existing user", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .set("x-access-token", deleteTestUserToken)
+          .expect(200)
+          .expect(function(res) {
+            res.body.message.should.equal("User deleted successfully");
+          })
+          .end(done);
+      });
+
+      it("returns status code 401 when no JWT token present in header", function(done) {
+        request(app)
+          .delete("/users/" + deleteTestUser._id)
+          .expect(401)
+          .expect(function(res) {
+            res.body.message.should.equal("No token provided.");
+          })
+          .end(done);
+      });
+
+      it("returns status code 404 with valid userId that does not map to an existing user", function(done) {
+        let validUserIdForNonExistentUser = "6a2d83d81b815cd544df5468";
+        request(app)
+          .delete("/users/" + validUserIdForNonExistentUser)
+          .set("x-access-token", deleteTestUserToken)
+          .expect(404)
+          .expect(function(res) {
+            res.body.message.should.equal("No user associated with this Id");
+          })
+          .end(done);
+      });
+
+      it("returns status code 400 with invalid userId", function(done) {
+        let invalidUserId = "123";
+        request(app)
+          .delete("/users/" + invalidUserId)
+          .set("x-access-token", deleteTestUserToken)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.equal("Invalid userId in request");
+          })
+          .end(done);
+      });
+    });
+
     describe("POST users/:userURL/addProfilePicture", function() {
       it.skip("returns status code 200 with valid data", function(done) {});
 

@@ -13,4 +13,14 @@ protectedUserRoutes.post("/:userURL/addProfilePicture", upload.single("profilePi
   return userController.addProfilePictureToUser(req, res);
 });
 
+// PATCH user information by userId
+protectedUserRoutes.patch("/:userId", function(req, res) {
+  return userController.updateUserByUserId(req, res);
+});
+
+// DELETE user by userId
+protectedUserRoutes.delete("/:userId", function(req, res) {
+  return userController.deleteUserByUserId(req, res);
+});
+
 module.exports = protectedUserRoutes;

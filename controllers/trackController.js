@@ -322,13 +322,42 @@ exports.deleteTrackByTrackURL = function(req, res) {
       let clientUploaderId = req.decoded.userId;
 
       if (clientUploaderId == uploaderIdOfCandidateTrack) {
-        // if comment clientUploaderId from provided JWT token equals uploaderIdOfCandidateTrack; user has permission to delete this track
+        // if clientUploaderId from provided JWT token equals uploaderId Of CandidateTrack; user has permission to delete this track
         Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
           if (err) return res.status(500).json({ message: "Error deleting track" });
           res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
         });
       } else {
-        res.status(403).json({ message: "Unauthorized to delete this comment" });
+        res.status(403).json({ message: "Unauthorized to delete this track" });
+      }
+    }
+  });
+};
+
+exports.deleteTrackByTrackId = function(req, res) {
+  let trackId = req.params.trackId;
+
+  let query = Track.find({
+    _id: trackId
+  });
+
+  query.exec(function(err, track) {
+    if (err) return res.sendStatus(500);
+    else if (track.length == 0) {
+      res.status(404).json({ message: "No track with this trackId found on the system" });
+    } else {
+      let candidateTrackToBeDeleted = track[0];
+      let uploaderIdOfCandidateTrack = candidateTrackToBeDeleted.uploaderId;
+      let clientUploaderId = req.decoded.userId;
+
+      if (clientUploaderId == uploaderIdOfCandidateTrack) {
+        // if clientUploaderId from provided JWT token equals uploaderId Of CandidateTrack; user has permission to delete this track
+        Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
+          if (err) return res.status(500).json({ message: "Error deleting track" });
+          res.status(200).json({ message: `Track with trackId '${trackId}' deleted successfully` });
+        });
+      } else {
+        res.status(403).json({ message: "Unauthorized to delete this track" });
       }
     }
   });

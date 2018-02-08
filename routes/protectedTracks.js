@@ -32,8 +32,13 @@ protectedTrackRoutes.patch("/:trackURL/title", function(req, res) {
 });
 
 // Delete track by trackURL
-protectedTrackRoutes.delete("/:trackURL", function(req, res) {
+protectedTrackRoutes.delete("/trackurl/:trackURL", function(req, res) {
   return trackController.deleteTrackByTrackURL(req, res);
+});
+
+// Delete track by trackId
+protectedTrackRoutes.delete("/:trackId", function(req, res) {
+  return trackController.deleteTrackByTrackId(req, res);
 });
 
 module.exports = protectedTrackRoutes;

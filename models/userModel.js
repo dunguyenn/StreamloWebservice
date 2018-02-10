@@ -64,7 +64,7 @@ var userSchema = new Schema({
     type: Number,
     default: 0
   },
-  profilePictureBinary: {
+  profileImageBinaryId: {
     type: ObjectId
   },
   likedTracks: [

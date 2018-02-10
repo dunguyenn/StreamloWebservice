@@ -225,3 +225,39 @@ exports.deleteUserByUserId = (req, res) => {
     }
   });
 };
+
+exports.getUserProfileImageById = (req, res) => {
+  let userId = req.params.userId;
+  if (!ObjectID.isValid(req.params.userId)) {
+    res.status(400).json({ message: "Invalid userId" });
+  } else {
+    User.findOne({ _id: userId }, (err, user) => {
+      if (err) return res.status(500).json({ message: "Error getting user profile image" });
+      if (!user) return res.status(404).json({ message: "No user associated with this Id" });
+
+      let profileImageBinaryId = new ObjectID(user.profileImageBinaryId);
+
+      let db = mongoose.connection.db;
+      var bucket = new mongodb.GridFSBucket(db, {
+        bucketName: "userProfileImageFiles"
+      });
+
+      res.set("content-type", "image/png");
+
+      // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
+      var downloadStream = bucket.openDownloadStream(profileImageBinaryId);
+
+      downloadStream.on("data", chunk => {
+        res.write(chunk);
+      });
+
+      downloadStream.on("error", () => {
+        res.sendStatus(404);
+      });
+
+      downloadStream.on("end", () => {
+        res.end();
+      });
+    });
+  }
+};

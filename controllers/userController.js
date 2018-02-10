@@ -4,8 +4,10 @@ const ObjectID = require("mongodb").ObjectID;
 const mongoose = require("mongoose");
 const _ = require("lodash");
 
-// TODO implement addProfilePictureToUser function
-exports.addProfilePictureToUser = function(req, res) {};
+const { Readable } = require("stream");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fields: 1, fileSize: 6000000, files: 1, parts: 1 } });
 
 function validateGetUsersRequest(reqQuery) {
   let page = reqQuery.page;
@@ -235,7 +237,7 @@ exports.getUserProfileImageById = (req, res) => {
       if (err) return res.status(500).json({ message: "Error getting user profile image" });
       if (!user) return res.status(404).json({ message: "No user associated with this Id" });
 
-      let profileImageBinaryId = new ObjectID(user.profileImageBinaryId);
+      let profileImageGridFSId = new ObjectID(user.profileImageGridFSId);
 
       let db = mongoose.connection.db;
       var bucket = new mongodb.GridFSBucket(db, {
@@ -245,7 +247,7 @@ exports.getUserProfileImageById = (req, res) => {
       res.set("content-type", "image/png");
 
       // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
-      var downloadStream = bucket.openDownloadStream(profileImageBinaryId);
+      var downloadStream = bucket.openDownloadStream(profileImageGridFSId);
 
       downloadStream.on("data", chunk => {
         res.write(chunk);
@@ -260,4 +262,62 @@ exports.getUserProfileImageById = (req, res) => {
       });
     });
   }
+};
+
+exports.updateUserProfilePictureByUserId = (req, res) => {
+  upload.single("image")(req, res, err => {
+    if (err) {
+      return res.status(500).json({ message: "Error updating your profile picture" });
+    }
+
+    let userId = req.params.userId;
+    let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+    if (!ObjectID.isValid(req.params.userId)) {
+      res.status(400).json({ message: "Invalid userId" });
+    } else {
+      User.findOne({ _id: userId }, (err, user) => {
+        if (err) return res.status(500).json({ message: "Error updating user profile picture" });
+        if (!user) return res.status(404).json({ message: "No user associated with this Id" });
+
+        // check if requestor has permission to update this users profile picture (requestors userId is equal to userId of returned user document)
+        if (requestorUserIdFromDecodedJWTToken == user._id) {
+          let db = mongoose.connection.db;
+          let bucket = new mongodb.GridFSBucket(db, {
+            bucketName: "userProfileImageFiles"
+          });
+
+          // if user already has profile picture, delete old one from gridfs before continuing
+          let currentUserProfileGridFSId = user.profileImageGridFSId;
+          if (currentUserProfileGridFSId) {
+            bucket.delete(currentUserProfileGridFSId, err => {
+              if (err) return res.status(500).json({ message: "Error updating user profile picture" });
+            });
+          }
+
+          let uploadStream = bucket.openUploadStream(userId, { contentType: "image/png" });
+          let userImageGridFSId = uploadStream.id;
+
+          const readableImageStream = new Readable();
+          readableImageStream.push(req.file.buffer);
+          readableImageStream.push(null);
+          readableImageStream.pipe(uploadStream);
+
+          uploadStream.on("error", () => {
+            res.status(500).json({ message: "Error updating profile picture" });
+          });
+
+          uploadStream.on("finish", () => {
+            user.profileImageGridFSId = userImageGridFSId;
+            user.save({ validateBeforeSave: true }, err => {
+              if (err) return res.status(500).json({ message: "Error updating user profile picture" });
+              return res.status(200).json({ message: "User profile picture updated successfully" });
+            });
+          });
+        } else {
+          return res.status(403).json({ message: "Unauthorized to update this user's profile picture" });
+        }
+      });
+    }
+  });
 };

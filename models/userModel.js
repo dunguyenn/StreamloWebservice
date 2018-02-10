@@ -64,7 +64,7 @@ var userSchema = new Schema({
     type: Number,
     default: 0
   },
-  profileImageBinaryId: {
+  profileImageGridFSId: {
     type: ObjectId
   },
   likedTracks: [
@@ -150,6 +150,8 @@ userSchema.post("findOneAndRemove", function(doc) {
       });
     });
   }
+
+  // TODO post findOneAndRemove on User - also remove associated profile pictures
 });
 
 module.exports = mongoose.model("user", userSchema);

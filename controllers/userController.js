@@ -270,6 +270,10 @@ exports.updateUserProfilePictureByUserId = (req, res) => {
       return res.status(500).json({ message: "Error updating your profile picture" });
     }
 
+    if (!req.file) {
+      return res.status(400).json({ message: "No new image in request body" });
+    }
+
     let userId = req.params.userId;
     let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
 

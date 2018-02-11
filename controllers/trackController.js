@@ -640,7 +640,7 @@ exports.getTrackAlbumArtById = (req, res) => {
           }
         };
 
-        res.sendFile("altAlbumArtLogo.png", options);
+        res.sendFile("defaultAlbumArt.png", options);
       });
 
       downloadStream.on("end", () => {

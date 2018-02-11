@@ -254,7 +254,16 @@ exports.getUserProfileImageById = (req, res) => {
       });
 
       downloadStream.on("error", () => {
-        res.sendStatus(404);
+        // If this user has no profile picture associated with it - return default profile picture
+        var options = {
+          root: "public",
+          dotfiles: "deny",
+          headers: {
+            "content-type": "image/png"
+          }
+        };
+
+        res.sendFile("defaultProfilePicture.png", options);
       });
 
       downloadStream.on("end", () => {

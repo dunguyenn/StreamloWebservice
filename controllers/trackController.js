@@ -444,7 +444,7 @@ exports.getTrackCommentsById = function(req, res) {
       } else {
         let matchingTrackComments = track[0].comments;
         let totalNumberCommentsForMatchingTrack = matchingTrackComments.length;
-        if (matchingTrackComments.length == 0) {
+        if (totalNumberCommentsForMatchingTrack == 0) {
           res.status(404).json({ message: "No comments found on this track" });
         } else {
           getPageOfComments(matchingTrackComments, requestedPage, perPage, (err, commentsPage) => {

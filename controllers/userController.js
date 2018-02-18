@@ -9,7 +9,7 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fields: 1, fileSize: 6000000, files: 1, parts: 1 } });
 
-function validateGetUsersRequest(reqQuery) {
+function validatePageQueryStrings(reqQuery) {
   let page = reqQuery.page;
   let perPage = reqQuery.per_page;
 
@@ -29,10 +29,10 @@ exports.getUsers = function(req, res) {
   if (!req.query.page) req.query.page = 1;
   if (!req.query.per_page) req.query.per_page = 5;
 
-  const validationResult = validateGetUsersRequest(req.query);
-  if (!validationResult.success) {
+  const pageValidationResult = validatePageQueryStrings(req.query);
+  if (!pageValidationResult.success) {
     return res.status(400).json({
-      message: validationResult.message
+      message: pageValidationResult.message
     });
   }
 
@@ -336,17 +336,66 @@ exports.updateUserProfilePictureByUserId = (req, res) => {
 };
 
 exports.getFollowedUsersById = (req, res) => {
+  // Default page to 1 and per_page to 5
+  if (!req.query.page) req.query.page = 1;
+  if (!req.query.per_page) req.query.per_page = 5;
+
+  const pageValidationResult = validatePageQueryStrings(req.query);
+  if (!pageValidationResult.success) {
+    return res.status(400).json({
+      message: pageValidationResult.message
+    });
+  }
+
+  let response = {};
   let userId = req.params.userId;
+  let perPage = parseInt(req.query.per_page);
+  let requestedPage = parseInt(req.query.page);
+
   if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
 
-  User.findOne({ _id: userId }, (err, user) => {
+  let query = User.findOne({
+    _id: userId
+  }).select("followees");
+
+  query.exec((err, user) => {
     if (err) return res.status(500).json({ message: "Error updating user information" });
     if (!user) return res.status(404).json({ message: "No user found with requested Id" });
 
-    return res.status(200).json({
-      users: user.followees
+    let matchingUserFollowees = user.followees;
+    let totalNumberFolloweesForMatchingUser = matchingUserFollowees.length;
+
+    if (matchingUserFollowees.length == 0) {
+      return res.status(200).json({ followees: matchingUserFollowees });
+    }
+
+    getPageOfFollowees(matchingUserFollowees, requestedPage, perPage, followeesPage => {
+      if (followeesPage.length == 0) return res.status(200).json({ message: "No followees found on this page" });
+      let pageCount = Math.ceil(totalNumberFolloweesForMatchingUser / perPage);
+      let response = {
+        followees: followeesPage,
+        total: totalNumberFolloweesForMatchingUser,
+        page: requestedPage,
+        pageCount: pageCount
+      };
+      res.status(200).json(response);
     });
   });
+};
+
+let getPageOfFollowees = (userFollowees, reqPage, perPage, cb) => {
+  // calculate initial Followee on this page by skiping the first x number of Followees
+  // where x is the product of perPage * (requestedPage - 1)
+
+  let followeesPage = [];
+  let firstFolloweeNum = perPage * (reqPage - 1);
+  let lastFolloweeNum = firstFolloweeNum + perPage;
+
+  for (let followeeNum = firstFolloweeNum; followeeNum < lastFolloweeNum; followeeNum++) {
+    if (!userFollowees[followeeNum]) break;
+    followeesPage.push(userFollowees[followeeNum]);
+  }
+  cb(followeesPage);
 };
 
 exports.addUserToFollowedUsersById = (req, res) => {

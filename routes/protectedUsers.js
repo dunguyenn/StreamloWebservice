@@ -21,4 +21,14 @@ protectedUserRoutes.delete("/:userId", function(req, res) {
   return userController.deleteUserByUserId(req, res);
 });
 
+// POST user to followed users by userId
+protectedUserRoutes.post("/:userId/followees", function(req, res) {
+  return userController.addUserToFollowedUsersById(req, res);
+});
+
+// DELETE followed users by userID
+protectedUserRoutes.delete("/:userId/followees/:userIdOfFollowee", function(req, res) {
+  return userController.deleteFollowedUserFromFollowedUsersList(req, res);
+});
+
 module.exports = protectedUserRoutes;

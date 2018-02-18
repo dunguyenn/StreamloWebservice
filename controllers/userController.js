@@ -334,3 +334,152 @@ exports.updateUserProfilePictureByUserId = (req, res) => {
     }
   });
 };
+
+exports.getFollowedUsersById = (req, res) => {
+  let userId = req.params.userId;
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!user) return res.status(404).json({ message: "No user found with requested Id" });
+
+    return res.status(200).json({
+      users: user.followees
+    });
+  });
+};
+
+exports.addUserToFollowedUsersById = (req, res) => {
+  let followerUserId = req.params.userId;
+  let followeeUserId = req.body.followeeUserId;
+
+  if (!ObjectID.isValid(followerUserId)) return res.status(400).json({ message: "Invalid follower userId in request" });
+  if (!ObjectID.isValid(followeeUserId)) return res.status(400).json({ message: "Invalid followee userId in request" });
+
+  // check if candidate follower is attempting to follow him/her self
+  if (followerUserId == followeeUserId) return res.status(400).json({ message: "Unable to follow yourself" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: followerUserId }, (err, followerUser) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!followerUser)
+      return res.status(404).json({ message: "userId of follower in request body does not map to user on system" });
+
+    let userIdOfCandidateFollower = followerUser.id;
+
+    // query db to check if userId of candidate Followee maps to a user on database
+    User.findOne({ _id: followeeUserId }, (err, followeeUser) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!followeeUser)
+        return res.status(404).json({ message: "userId of followee in request body does not map to user on system" });
+
+      // check if requestor has permission to follow a user from this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userIdOfCandidateFollower) {
+        // check if follower is already following candidate followee
+        let followerIsAlreadyFollowingFollowee = false;
+        followerUser.followees.forEach(followedUser => {
+          if (followedUser.userId == followeeUserId) {
+            followerIsAlreadyFollowingFollowee = true;
+          }
+        });
+        if (followerIsAlreadyFollowingFollowee) {
+          return res
+            .status(400)
+            .json({ message: `This user ${userIdOfCandidateFollower} already follows ${followeeUserId}` });
+        }
+
+        // If follower is not already following candidate followee - proceed to update follower
+        User.findByIdAndUpdate(
+          userIdOfCandidateFollower,
+          {
+            $push: {
+              followees: {
+                userId: followeeUserId
+              }
+            },
+            $inc: {
+              numberOfFollowees: 1
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error following user" });
+            return res
+              .status(200)
+              .json({ message: `User ${userIdOfCandidateFollower} is now following user ${followeeUserId}` });
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to follow a user from this account" });
+      }
+    });
+  });
+};
+
+exports.deleteFollowedUserFromFollowedUsersList = (req, res) => {
+  let followerUserId = req.params.userId;
+  let candidateExFolloweeUserId = req.params.userIdOfFollowee;
+
+  if (!ObjectID.isValid(followerUserId)) return res.status(400).json({ message: "Invalid follower userId in request" });
+  if (!ObjectID.isValid(candidateExFolloweeUserId))
+    return res.status(400).json({ message: "Invalid followee userId in request" });
+
+  // check if follower is attempting to unfollow him/her self
+  if (followerUserId == candidateExFolloweeUserId)
+    return res.status(400).json({ message: "Unable to unfollow yourself" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: followerUserId }, (err, followerUser) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!followerUser)
+      return res.status(404).json({ message: "userId of follower in request body does not map to user on system" });
+
+    let userIdOfFollower = followerUser.id;
+
+    // query db to check if userId of Followee maps to a user on database
+    User.findOne({ _id: candidateExFolloweeUserId }, (err, followeeUser) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!followeeUser)
+        return res.status(404).json({ message: "userId of followee in request body does not map to user on system" });
+
+      // check if requestor has permission to unfollow the followee user from this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userIdOfFollower) {
+        // check if follower is currently following followee - if not then proceed no further
+        let followerIsNotCurrentlyFollowingFollowee = true;
+        followerUser.followees.forEach(followedUser => {
+          if (followedUser.userId == candidateExFolloweeUserId) {
+            followerIsNotCurrentlyFollowingFollowee = false;
+          }
+        });
+        if (followerIsNotCurrentlyFollowingFollowee) {
+          return res.status(400).json({
+            message: `This user ${userIdOfFollower} is not currently following the user ${candidateExFolloweeUserId}`
+          });
+        }
+
+        User.findByIdAndUpdate(
+          userIdOfFollower,
+          {
+            $pull: {
+              followees: {
+                userId: candidateExFolloweeUserId
+              }
+            },
+            $inc: {
+              numberOfFollowees: -1
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error following user" });
+            return res
+              .status(200)
+              .json({ message: `User ${userIdOfFollower} is has unfollowed user ${candidateExFolloweeUserId}` });
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to unfollow a user from this account" });
+      }
+    });
+  });
+};

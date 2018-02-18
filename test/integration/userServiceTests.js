@@ -223,6 +223,10 @@ describe("User Service Integration Tests", function() {
           .end(done);
       });
     });
+
+    describe("GET /users/:id", function() {
+      it.skip("returns status code 200 with valid data", function(done) {});
+    });
   });
 
   describe("Protected User Endpoints", function() {
@@ -494,6 +498,18 @@ describe("User Service Integration Tests", function() {
     });
 
     describe("POST users/:userURL/addProfilePicture", function() {
+      it.skip("returns status code 200 with valid data", function(done) {});
+
+      it.skip("returns status code 401 and correct message when no jwt access token header present", function(done) {});
+    });
+
+    describe("POST users/:userId/followees", function() {
+      it.skip("returns status code 200 with valid data", function(done) {});
+
+      it.skip("returns status code 401 and correct message when no jwt access token header present", function(done) {});
+    });
+
+    describe("DELETE users/:userId/followees/:userIdOfFollowee", function() {
       it.skip("returns status code 200 with valid data", function(done) {});
 
       it.skip("returns status code 401 and correct message when no jwt access token header present", function(done) {});

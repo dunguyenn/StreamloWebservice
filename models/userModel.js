@@ -56,7 +56,7 @@ var userSchema = new Schema({
     type: Number,
     default: 0
   },
-  numberOfFollowedUsers: {
+  numberOfFollowees: {
     type: Number,
     default: 0
   },
@@ -74,9 +74,9 @@ var userSchema = new Schema({
       }
     }
   ],
-  followedUsers: [
+  followees: [
     {
-      followedUser: {
+      userId: {
         type: ObjectId
       }
     }

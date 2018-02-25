@@ -4,10 +4,12 @@ const ObjectID = require("mongodb").ObjectID;
 const mongoose = require("mongoose");
 const _ = require("lodash");
 
-// TODO implement addProfilePictureToUser function
-exports.addProfilePictureToUser = function(req, res) {};
+const { Readable } = require("stream");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fields: 1, fileSize: 6000000, files: 1, parts: 1 } });
 
-function validateGetUsersRequest(reqQuery) {
+function validatePageQueryStrings(reqQuery) {
   let page = reqQuery.page;
   let perPage = reqQuery.per_page;
 
@@ -27,10 +29,10 @@ exports.getUsers = function(req, res) {
   if (!req.query.page) req.query.page = 1;
   if (!req.query.per_page) req.query.per_page = 5;
 
-  const validationResult = validateGetUsersRequest(req.query);
-  if (!validationResult.success) {
+  const pageValidationResult = validatePageQueryStrings(req.query);
+  if (!pageValidationResult.success) {
     return res.status(400).json({
-      message: validationResult.message
+      message: pageValidationResult.message
     });
   }
 
@@ -90,21 +92,21 @@ exports.getUserById = function(req, res) {
   if (!ObjectID.isValid(userId)) {
     res.status(400).json({ message: "Invalid userID" });
   } else {
-    let query = User.find({
+    User.find({
       _id: userId
-    });
-
-    query.exec(function(err, results) {
-      if (err) {
-        res.sendStatus(500);
-      } else if (_.isEmpty(results)) {
-        res.status(404).json({ message: "No user associated with requested userID" });
-      } else {
-        res.status(200).json({
-          users: results
-        });
-      }
-    });
+    })
+      .select("-password")
+      .exec(function(err, results) {
+        if (err) {
+          res.sendStatus(500);
+        } else if (_.isEmpty(results)) {
+          res.status(404).json({ message: "No user associated with requested userID" });
+        } else {
+          res.status(200).json({
+            users: results
+          });
+        }
+      });
   }
 };
 
@@ -223,5 +225,310 @@ exports.deleteUserByUserId = (req, res) => {
     } else {
       return res.status(403).json({ message: "Unauthorized to delete this user" });
     }
+  });
+};
+
+exports.getUserProfileImageById = (req, res) => {
+  let userId = req.params.userId;
+  if (!ObjectID.isValid(req.params.userId)) {
+    res.status(400).json({ message: "Invalid userId" });
+  } else {
+    User.findOne({ _id: userId }, (err, user) => {
+      if (err) return res.status(500).json({ message: "Error getting user profile image" });
+      if (!user) return res.status(404).json({ message: "No user associated with this Id" });
+
+      let profileImageGridFSId = new ObjectID(user.profileImageGridFSId);
+
+      let db = mongoose.connection.db;
+      var bucket = new mongodb.GridFSBucket(db, {
+        bucketName: "userProfileImageFiles"
+      });
+
+      res.set("content-type", "image/png");
+
+      // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
+      var downloadStream = bucket.openDownloadStream(profileImageGridFSId);
+
+      downloadStream.on("data", chunk => {
+        res.write(chunk);
+      });
+
+      downloadStream.on("error", () => {
+        // If this user has no profile picture associated with it - return default profile picture
+        var options = {
+          root: "public",
+          dotfiles: "deny",
+          headers: {
+            "content-type": "image/png"
+          }
+        };
+
+        res.sendFile("defaultProfilePicture.png", options);
+      });
+
+      downloadStream.on("end", () => {
+        res.end();
+      });
+    });
+  }
+};
+
+exports.updateUserProfilePictureByUserId = (req, res) => {
+  upload.single("image")(req, res, err => {
+    if (err) {
+      return res.status(500).json({ message: "Error updating your profile picture" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No new image in request body" });
+    }
+
+    let userId = req.params.userId;
+    let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+    if (!ObjectID.isValid(req.params.userId)) {
+      res.status(400).json({ message: "Invalid userId" });
+    } else {
+      User.findOne({ _id: userId }, (err, user) => {
+        if (err) return res.status(500).json({ message: "Error updating user profile picture" });
+        if (!user) return res.status(404).json({ message: "No user associated with this Id" });
+
+        // check if requestor has permission to update this users profile picture (requestors userId is equal to userId of returned user document)
+        if (requestorUserIdFromDecodedJWTToken == user._id) {
+          let db = mongoose.connection.db;
+          let bucket = new mongodb.GridFSBucket(db, {
+            bucketName: "userProfileImageFiles"
+          });
+
+          // if user already has profile picture, delete old one from gridfs before continuing
+          let currentUserProfileGridFSId = user.profileImageGridFSId;
+          if (currentUserProfileGridFSId) {
+            bucket.delete(currentUserProfileGridFSId, err => {
+              if (err) return res.status(500).json({ message: "Error updating user profile picture" });
+            });
+          }
+
+          let uploadStream = bucket.openUploadStream(userId, { contentType: "image/png" });
+          let userImageGridFSId = uploadStream.id;
+
+          const readableImageStream = new Readable();
+          readableImageStream.push(req.file.buffer);
+          readableImageStream.push(null);
+          readableImageStream.pipe(uploadStream);
+
+          uploadStream.on("error", () => {
+            res.status(500).json({ message: "Error updating profile picture" });
+          });
+
+          uploadStream.on("finish", () => {
+            user.profileImageGridFSId = userImageGridFSId;
+            user.save({ validateBeforeSave: true }, err => {
+              if (err) return res.status(500).json({ message: "Error updating user profile picture" });
+              return res.status(200).json({ message: "User profile picture updated successfully" });
+            });
+          });
+        } else {
+          return res.status(403).json({ message: "Unauthorized to update this user's profile picture" });
+        }
+      });
+    }
+  });
+};
+
+exports.getFollowedUsersById = (req, res) => {
+  // Default page to 1 and per_page to 5
+  if (!req.query.page) req.query.page = 1;
+  if (!req.query.per_page) req.query.per_page = 5;
+
+  const pageValidationResult = validatePageQueryStrings(req.query);
+  if (!pageValidationResult.success) {
+    return res.status(400).json({
+      message: pageValidationResult.message
+    });
+  }
+
+  let response = {};
+  let userId = req.params.userId;
+  let perPage = parseInt(req.query.per_page);
+  let requestedPage = parseInt(req.query.page);
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+
+  let query = User.findOne({
+    _id: userId
+  }).select("followees");
+
+  query.exec((err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!user) return res.status(404).json({ message: "No user found with requested Id" });
+
+    let matchingUserFollowees = user.followees;
+    let totalNumberFolloweesForMatchingUser = matchingUserFollowees.length;
+
+    if (matchingUserFollowees.length == 0) {
+      return res.status(200).json({ followees: matchingUserFollowees });
+    }
+
+    getPageOfFollowees(matchingUserFollowees, requestedPage, perPage, followeesPage => {
+      if (followeesPage.length == 0) return res.status(200).json({ message: "No followees found on this page" });
+      let pageCount = Math.ceil(totalNumberFolloweesForMatchingUser / perPage);
+      let response = {
+        followees: followeesPage,
+        total: totalNumberFolloweesForMatchingUser,
+        page: requestedPage,
+        pageCount: pageCount
+      };
+      res.status(200).json(response);
+    });
+  });
+};
+
+let getPageOfFollowees = (userFollowees, reqPage, perPage, cb) => {
+  // calculate initial Followee on this page by skiping the first x number of Followees
+  // where x is the product of perPage * (requestedPage - 1)
+
+  let followeesPage = [];
+  let firstFolloweeNum = perPage * (reqPage - 1);
+  let lastFolloweeNum = firstFolloweeNum + perPage;
+
+  for (let followeeNum = firstFolloweeNum; followeeNum < lastFolloweeNum; followeeNum++) {
+    if (!userFollowees[followeeNum]) break;
+    followeesPage.push(userFollowees[followeeNum]);
+  }
+  cb(followeesPage);
+};
+
+exports.addUserToFollowedUsersById = (req, res) => {
+  let followerUserId = req.params.userId;
+  let followeeUserId = req.body.followeeUserId;
+
+  if (!ObjectID.isValid(followerUserId)) return res.status(400).json({ message: "Invalid follower userId in request" });
+  if (!ObjectID.isValid(followeeUserId)) return res.status(400).json({ message: "Invalid followee userId in request" });
+
+  // check if candidate follower is attempting to follow him/her self
+  if (followerUserId == followeeUserId) return res.status(400).json({ message: "Unable to follow yourself" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: followerUserId }, (err, followerUser) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!followerUser)
+      return res.status(404).json({ message: "userId of follower in request body does not map to user on system" });
+
+    let userIdOfCandidateFollower = followerUser.id;
+
+    // query db to check if userId of candidate Followee maps to a user on database
+    User.findOne({ _id: followeeUserId }, (err, followeeUser) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!followeeUser)
+        return res.status(404).json({ message: "userId of followee in request body does not map to user on system" });
+
+      // check if requestor has permission to follow a user from this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userIdOfCandidateFollower) {
+        // check if follower is already following candidate followee
+        let followerIsAlreadyFollowingFollowee = false;
+        followerUser.followees.forEach(followedUser => {
+          if (followedUser.userId == followeeUserId) {
+            followerIsAlreadyFollowingFollowee = true;
+          }
+        });
+        if (followerIsAlreadyFollowingFollowee) {
+          return res
+            .status(400)
+            .json({ message: `This user ${userIdOfCandidateFollower} already follows ${followeeUserId}` });
+        }
+
+        // If follower is not already following candidate followee - proceed to update follower
+        User.findByIdAndUpdate(
+          userIdOfCandidateFollower,
+          {
+            $push: {
+              followees: {
+                userId: followeeUserId
+              }
+            },
+            $inc: {
+              numberOfFollowees: 1
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error following user" });
+            return res
+              .status(200)
+              .json({ message: `User ${userIdOfCandidateFollower} is now following user ${followeeUserId}` });
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to follow a user from this account" });
+      }
+    });
+  });
+};
+
+exports.deleteFollowedUserFromFollowedUsersList = (req, res) => {
+  let followerUserId = req.params.userId;
+  let candidateExFolloweeUserId = req.params.userIdOfFollowee;
+
+  if (!ObjectID.isValid(followerUserId)) return res.status(400).json({ message: "Invalid follower userId in request" });
+  if (!ObjectID.isValid(candidateExFolloweeUserId))
+    return res.status(400).json({ message: "Invalid followee userId in request" });
+
+  // check if follower is attempting to unfollow him/her self
+  if (followerUserId == candidateExFolloweeUserId)
+    return res.status(400).json({ message: "Unable to unfollow yourself" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: followerUserId }, (err, followerUser) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!followerUser)
+      return res.status(404).json({ message: "userId of follower in request body does not map to user on system" });
+
+    let userIdOfFollower = followerUser.id;
+
+    // query db to check if userId of Followee maps to a user on database
+    User.findOne({ _id: candidateExFolloweeUserId }, (err, followeeUser) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!followeeUser)
+        return res.status(404).json({ message: "userId of followee in request body does not map to user on system" });
+
+      // check if requestor has permission to unfollow the followee user from this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userIdOfFollower) {
+        // check if follower is currently following followee - if not then proceed no further
+        let followerIsNotCurrentlyFollowingFollowee = true;
+        followerUser.followees.forEach(followedUser => {
+          if (followedUser.userId == candidateExFolloweeUserId) {
+            followerIsNotCurrentlyFollowingFollowee = false;
+          }
+        });
+        if (followerIsNotCurrentlyFollowingFollowee) {
+          return res.status(400).json({
+            message: `This user ${userIdOfFollower} is not currently following the user ${candidateExFolloweeUserId}`
+          });
+        }
+
+        User.findByIdAndUpdate(
+          userIdOfFollower,
+          {
+            $pull: {
+              followees: {
+                userId: candidateExFolloweeUserId
+              }
+            },
+            $inc: {
+              numberOfFollowees: -1
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error following user" });
+            return res
+              .status(200)
+              .json({ message: `User ${userIdOfFollower} has unfollowed user ${candidateExFolloweeUserId}` });
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to unfollow a user from this account" });
+      }
+    });
   });
 };

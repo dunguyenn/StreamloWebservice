@@ -56,7 +56,7 @@ var userSchema = new Schema({
     type: Number,
     default: 0
   },
-  numberOfFollowedUsers: {
+  numberOfFollowees: {
     type: Number,
     default: 0
   },
@@ -64,7 +64,7 @@ var userSchema = new Schema({
     type: Number,
     default: 0
   },
-  profilePictureBinary: {
+  profileImageGridFSId: {
     type: ObjectId
   },
   likedTracks: [
@@ -74,9 +74,9 @@ var userSchema = new Schema({
       }
     }
   ],
-  followedUsers: [
+  followees: [
     {
-      followedUser: {
+      userId: {
         type: ObjectId
       }
     }
@@ -150,6 +150,8 @@ userSchema.post("findOneAndRemove", function(doc) {
       });
     });
   }
+
+  // TODO post findOneAndRemove on User - also remove associated profile pictures
 });
 
 module.exports = mongoose.model("user", userSchema);

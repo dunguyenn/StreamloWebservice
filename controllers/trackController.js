@@ -10,7 +10,7 @@ const ObjectID = require("mongodb").ObjectID;
 const { Readable } = require("stream");
 const multer = require("multer");
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 1, parts: 8 } });
+const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 2, parts: 9 } });
 const logger = require("winston");
 
 exports.getTrackStreamByGridFSId = function(req, res) {
@@ -149,7 +149,7 @@ let getNumberOfTracks = (mongooseQueryFilter, cb) => {
   });
 };
 
-function validatePostTrackForm(fields, file) {
+function validatePostTrackForm(fields, files) {
   let title = fields.title;
   let genre = fields.genre;
   let city = fields.city;
@@ -157,7 +157,8 @@ function validatePostTrackForm(fields, file) {
   let dateUploaded = fields.dateUploaded;
   let uploaderId = fields.uploaderId;
   let description = fields.description;
-  let track = file;
+  let track = files.track;
+  let albumArt = files.albumArt;
 
   if (!title || typeof title !== "string") {
     return { success: false, message: "No track title in request body." };
@@ -194,12 +195,14 @@ function validatePostTrackForm(fields, file) {
   return { success: true };
 }
 
+let postTrackFields = [{ name: "track", maxCount: 1 }, { name: "albumArt", maxCount: 1 }];
+
 exports.postTrack = (req, res) => {
-  upload.single("track")(req, res, err => {
+  upload.fields(postTrackFields)(req, res, err => {
     if (err) {
       return res.status(400).json({ message: "Error uploading your track" });
     }
-    const validationResult = validatePostTrackForm(req.body, req.file);
+    const validationResult = validatePostTrackForm(req.body, req.files);
     if (!validationResult.success) {
       return res.status(400).json({
         message: validationResult.message
@@ -210,12 +213,24 @@ exports.postTrack = (req, res) => {
     let uploderId = req.body.uploaderId;
 
     let db = mongoose.connection.db;
-    let bucket = new mongodb.GridFSBucket(db, {
+    let trackBucket = new mongodb.GridFSBucket(db, {
       bucketName: "trackBinaryFiles"
     });
+    let albumArtBucket = new mongodb.GridFSBucket(db, {
+      bucketName: "albumArtBinaryFiles"
+    });
 
-    let uploadStream = bucket.openUploadStream(trackTitle, { contentType: "audio/mp3" });
-    let trackGridFSId = uploadStream.id;
+    let trackUploadStream = trackBucket.openUploadStream(req.files.track[0].originalname, { contentType: "audio/mp3" });
+    let trackGridFSId = trackUploadStream.id;
+
+    let albumArtuploadStream = undefined;
+    let albumArtGridFSId = undefined;
+    if (req.files.albumArt) {
+      albumArtuploadStream = albumArtBucket.openUploadStream(req.files.albumArt[0].originalname, {
+        contentType: "image/*"
+      });
+      albumArtGridFSId = albumArtuploadStream.id;
+    }
 
     var track = new Track({
       title: req.body.title,
@@ -225,7 +240,8 @@ exports.postTrack = (req, res) => {
       dateUploaded: req.body.dateUploaded,
       uploaderId: req.body.uploaderId,
       description: req.body.description,
-      trackBinaryId: trackGridFSId
+      trackBinaryId: trackGridFSId,
+      albumArtBinaryId: albumArtGridFSId
     });
 
     track.save(function(err, track) {
@@ -241,15 +257,15 @@ exports.postTrack = (req, res) => {
         // If track document saves successfully, attempt to stream track from buffer to gridfs
         // Covert buffer to Readable Stream
         const readableTrackStream = new Readable();
-        readableTrackStream.push(req.file.buffer);
+        readableTrackStream.push(req.files.track[0].buffer);
         readableTrackStream.push(null);
-        readableTrackStream.pipe(uploadStream);
+        readableTrackStream.pipe(trackUploadStream);
 
-        uploadStream.on("error", () => {
+        trackUploadStream.on("error", () => {
           res.status(500).json({ message: "Error uploading file" });
         });
 
-        uploadStream.on("finish", () => {
+        trackUploadStream.on("finish", () => {
           // If track piped to gridFS successfully, attempt to update user model
           User.findByIdAndUpdate(
             uploderId,
@@ -271,14 +287,56 @@ exports.postTrack = (req, res) => {
                   res.status(500).json({ message: "Error uploading file" });
                 });
               }
+
+              // After user model successfully updated - attempt store album art in gridfs (if album art present in request)
+              if (albumArtuploadStream) {
+                const readableAlbumArtStream = new Readable();
+                readableAlbumArtStream.push(req.files.albumArt[0].buffer);
+                readableAlbumArtStream.push(null);
+                readableAlbumArtStream.pipe(albumArtuploadStream);
+
+                albumArtuploadStream.on("error", () => {
+                  // on error storing album art - undo updates to uploader user model and remove track
+                  Track.findOneAndRemove({ _id: track._id }, err => {
+                    User.findByIdAndUpdate(
+                      uploderId,
+                      {
+                        $pull: {
+                          uploadedTracks: {
+                            trackID: track._id
+                          }
+                        },
+                        $inc: {
+                          numberOfTracksUploaded: -1
+                        }
+                      },
+                      err => {
+                        if (err) {
+                          return res.status(500).json({ message: "Error uploading file" });
+                        }
+                        res.status(500).json({ message: "Error uploading file" });
+                      }
+                    );
+                  });
+                });
+
+                albumArtuploadStream.on("finish", () => {
+                  let message = {
+                    message: "File uploaded successfully",
+                    trackBinaryId: track.id
+                  };
+                  res.status(201).json(message);
+                });
+              } else {
+                let message = {
+                  message: "File uploaded successfully",
+                  trackBinaryId: track.id
+                };
+                res.status(201).json(message);
+              }
             }
           );
         });
-        let message = {
-          message: "File uploaded successfully",
-          trackBinaryId: track.id
-        };
-        res.status(201).json(message);
       }
     });
   });
@@ -386,7 +444,7 @@ exports.getTrackCommentsById = function(req, res) {
       } else {
         let matchingTrackComments = track[0].comments;
         let totalNumberCommentsForMatchingTrack = matchingTrackComments.length;
-        if (matchingTrackComments.length == 0) {
+        if (totalNumberCommentsForMatchingTrack == 0) {
           res.status(404).json({ message: "No comments found on this track" });
         } else {
           getPageOfComments(matchingTrackComments, requestedPage, perPage, (err, commentsPage) => {
@@ -545,4 +603,49 @@ exports.updateTrackDescriptionByTrackURL = (req, res) => {
       }
     }
   );
+};
+
+exports.getTrackAlbumArtById = (req, res) => {
+  let trackId = req.params.trackId;
+  if (!ObjectID.isValid(req.params.trackId)) {
+    res.status(400).json({ message: "Invalid trackId" });
+  } else {
+    Track.findOne({ _id: trackId }, (err, track) => {
+      if (err) return res.status(500).json({ message: "Error getting track album art" });
+      if (!track) return res.status(404).json({ message: "No track associated with this Id" });
+
+      let trackAlbumArtGridFSId = new ObjectID(track.albumArtBinaryId);
+
+      let db = mongoose.connection.db;
+      var bucket = new mongodb.GridFSBucket(db, {
+        bucketName: "albumArtBinaryFiles"
+      });
+
+      res.set("content-type", "image/png");
+
+      // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
+      var downloadStream = bucket.openDownloadStream(trackAlbumArtGridFSId);
+
+      downloadStream.on("data", chunk => {
+        res.write(chunk);
+      });
+
+      downloadStream.on("error", () => {
+        // If this track has no album art associated with it - return default album art
+        var options = {
+          root: "public",
+          dotfiles: "deny",
+          headers: {
+            "content-type": "image/png"
+          }
+        };
+
+        res.sendFile("defaultAlbumArt.png", options);
+      });
+
+      downloadStream.on("end", () => {
+        res.end();
+      });
+    });
+  }
 };

@@ -92,21 +92,21 @@ exports.getUserById = function(req, res) {
   if (!ObjectID.isValid(userId)) {
     res.status(400).json({ message: "Invalid userID" });
   } else {
-    let query = User.find({
+    User.find({
       _id: userId
-    });
-
-    query.exec(function(err, results) {
-      if (err) {
-        res.sendStatus(500);
-      } else if (_.isEmpty(results)) {
-        res.status(404).json({ message: "No user associated with requested userID" });
-      } else {
-        res.status(200).json({
-          users: results
-        });
-      }
-    });
+    })
+      .select("-password")
+      .exec(function(err, results) {
+        if (err) {
+          res.sendStatus(500);
+        } else if (_.isEmpty(results)) {
+          res.status(404).json({ message: "No user associated with requested userID" });
+        } else {
+          res.status(200).json({
+            users: results
+          });
+        }
+      });
   }
 };
 
@@ -523,7 +523,7 @@ exports.deleteFollowedUserFromFollowedUsersList = (req, res) => {
             if (err) return res.status(500).json({ message: "Error following user" });
             return res
               .status(200)
-              .json({ message: `User ${userIdOfFollower} is has unfollowed user ${candidateExFolloweeUserId}` });
+              .json({ message: `User ${userIdOfFollower} has unfollowed user ${candidateExFolloweeUserId}` });
           }
         );
       } else {

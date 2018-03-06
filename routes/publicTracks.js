@@ -9,7 +9,7 @@ publicTrackRoutes.get("/", function(req, res) {
 
 // GET stream of track by ID
 publicTrackRoutes.get("/:trackId/stream", function(req, res) {
-  return trackController.getTrackStreamByGridFSId(req, res);
+  return trackController.getTrackStreamByTrackId(req, res);
 });
 
 // GET comments of track by ID

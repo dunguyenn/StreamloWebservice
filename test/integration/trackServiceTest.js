@@ -19,7 +19,6 @@ describe("Track Service Integration Tests", function() {
   var app;
   var testUser;
   var testUserToken;
-  var testTrackId;
   var testTrack;
   var trackGridFSId;
 
@@ -246,9 +245,9 @@ describe("Track Service Integration Tests", function() {
     });
 
     describe("GET /tracks/:trackId/stream", function() {
-      it("returns status code 200 with valid trackBinaryId", function(done) {
+      it("returns status code 200 with valid trackId", function(done) {
         request(app)
-          .get("/tracks/" + trackGridFSId + "/stream")
+          .get("/tracks/" + trackMongoID + "/stream")
           .expect(200)
           .expect(function(res) {
             res.header["content-type"].should.equal("audio/mp3");
@@ -256,7 +255,7 @@ describe("Track Service Integration Tests", function() {
           })
           .end(done);
       });
-      it("returns status code 400 with invalid trackBinaryId", function(done) {
+      it("returns status code 400 with invalid trackId", function(done) {
         request(app)
           .get("/tracks/123/stream")
           .expect(400)
@@ -265,7 +264,7 @@ describe("Track Service Integration Tests", function() {
           })
           .end(done);
       });
-      it("returns status code 404 with non existent trackBinaryId", function(done) {
+      it("returns status code 404 with non existent trackId", function(done) {
         request(app)
           .get("/tracks/69f5c1be7483f906c25169ae/stream")
           .expect(404)

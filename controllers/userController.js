@@ -453,9 +453,39 @@ exports.addUserToFollowedUsersById = (req, res) => {
           },
           err => {
             if (err) return res.status(500).json({ message: "Error following user" });
-            return res
-              .status(200)
-              .json({ message: `User ${userIdOfCandidateFollower} is now following user ${followeeUserId}` });
+
+            User.findByIdAndUpdate(
+              followeeUserId,
+              {
+                $inc: {
+                  numberOfFollowers: 1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating followee - rollback changes made to follower - then return 500 error
+                  User.findByIdAndUpdate(
+                    userIdOfCandidateFollower,
+                    {
+                      $pull: {
+                        followees: {
+                          userId: followeeUserId
+                        }
+                      },
+                      $inc: {
+                        numberOfFollowees: -1
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error following user" });
+                    }
+                  );
+                }
+                return res
+                  .status(200)
+                  .json({ message: `User ${userIdOfCandidateFollower} is now following user ${followeeUserId}` });
+              }
+            );
           }
         );
       } else {
@@ -521,9 +551,40 @@ exports.deleteFollowedUserFromFollowedUsersList = (req, res) => {
           },
           err => {
             if (err) return res.status(500).json({ message: "Error following user" });
-            return res
-              .status(200)
-              .json({ message: `User ${userIdOfFollower} has unfollowed user ${candidateExFolloweeUserId}` });
+            // update followee - decrement number of followers by 1
+
+            User.findByIdAndUpdate(
+              candidateExFolloweeUserId,
+              {
+                $inc: {
+                  numberOfFollowers: -1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating followee - rollback changes made to follower - then return 500 error
+                  User.findByIdAndUpdate(
+                    userIdOfFollower,
+                    {
+                      $push: {
+                        followees: {
+                          userId: candidateExFolloweeUserId
+                        }
+                      },
+                      $inc: {
+                        numberOfFollowees: 1
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error following user" });
+                    }
+                  );
+                }
+                return res.status(200).json({
+                  message: `User ${userIdOfFollower} is no longer following user ${candidateExFolloweeUserId}`
+                });
+              }
+            );
           }
         );
       } else {

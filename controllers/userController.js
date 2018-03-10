@@ -369,7 +369,7 @@ exports.getFollowedUsersById = (req, res) => {
       return res.status(200).json({ followees: matchingUserFollowees });
     }
 
-    getPageOfFollowees(matchingUserFollowees, requestedPage, perPage, followeesPage => {
+    getPageOfAttributes(matchingUserFollowees, requestedPage, perPage, followeesPage => {
       if (followeesPage.length == 0) return res.status(200).json({ message: "No followees found on this page" });
       let pageCount = Math.ceil(totalNumberFolloweesForMatchingUser / perPage);
       let response = {
@@ -383,19 +383,19 @@ exports.getFollowedUsersById = (req, res) => {
   });
 };
 
-let getPageOfFollowees = (userFollowees, reqPage, perPage, cb) => {
+let getPageOfAttributes = (userAttributes, reqPage, perPage, cb) => {
   // calculate initial Followee on this page by skiping the first x number of Followees
   // where x is the product of perPage * (requestedPage - 1)
 
-  let followeesPage = [];
-  let firstFolloweeNum = perPage * (reqPage - 1);
-  let lastFolloweeNum = firstFolloweeNum + perPage;
+  let attributesPage = [];
+  let firstAttributeNum = perPage * (reqPage - 1);
+  let lastAttributeNum = firstAttributeNum + perPage;
 
-  for (let followeeNum = firstFolloweeNum; followeeNum < lastFolloweeNum; followeeNum++) {
-    if (!userFollowees[followeeNum]) break;
-    followeesPage.push(userFollowees[followeeNum]);
+  for (let AttributeNum = firstAttributeNum; AttributeNum < lastAttributeNum; AttributeNum++) {
+    if (!userAttributes[AttributeNum]) break;
+    attributesPage.push(userAttributes[AttributeNum]);
   }
-  cb(followeesPage);
+  cb(attributesPage);
 };
 
 exports.addUserToFollowedUsersById = (req, res) => {
@@ -628,7 +628,7 @@ exports.getLikedTracksByUserId = (req, res) => {
       return res.status(200).json({ likedTracks: matchingUserLikedTracks });
     }
 
-    getPageOfFollowees(matchingUserLikedTracks, requestedPage, perPage, likedTracksPage => {
+    getPageOfAttributes(matchingUserLikedTracks, requestedPage, perPage, likedTracksPage => {
       if (likedTracksPage.length == 0) return res.status(200).json({ message: "No liked tracks found on this page" });
       let pageCount = Math.ceil(totalNumberLikedTracksForMatchingUser / perPage);
       let response = {

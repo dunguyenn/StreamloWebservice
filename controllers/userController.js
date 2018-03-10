@@ -1,4 +1,6 @@
 const User = require("../models/userModel.js");
+const Track = require("../models/trackModel.js");
+
 const mongodb = require("mongodb");
 const ObjectID = require("mongodb").ObjectID;
 const mongoose = require("mongoose");
@@ -642,6 +644,89 @@ exports.getLikedTracksByUserId = (req, res) => {
   });
 };
 
-exports.addTrackToLikedTracksByUserId = (req, res) => {};
+exports.addTrackToLikedTracksByUserId = (req, res) => {
+  let userId = req.params.userId;
+  let trackId = req.params.trackId;
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+  if (!ObjectID.isValid(trackId)) return res.status(400).json({ message: "Invalid trackId in request" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!user) return res.status(404).json({ message: "userId in request body does not map to user on system" });
+
+    let userIdOfCandidateLiker = user.id;
+
+    // query db to check if trackId in req maps to a track on database
+    Track.findOne({ _id: trackId }, (err, track) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!track) return res.status(404).json({ message: "trackId in request body does not map to track on system" });
+
+      // check if requestor has permission to like a track from this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userIdOfCandidateLiker) {
+        // check if follower is already following candidate followee
+        let userHasAlreadyLikedTrack = false;
+        user.likedTracks.forEach(likedTrack => {
+          if (likedTrack.trackId == trackId) {
+            userHasAlreadyLikedTrack = true;
+          }
+        });
+        if (userHasAlreadyLikedTrack) {
+          return res
+            .status(400)
+            .json({ message: `This user ${userIdOfCandidateLiker} already likes the track ${trackId}` });
+        }
+
+        // If user has not already liked candidate liked track - proceed to update user
+        User.findByIdAndUpdate(
+          userIdOfCandidateLiker,
+          {
+            $push: {
+              likedTracks: {
+                trackId: trackId
+              }
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error liking track" });
+
+            // If user update successful - proceed to update track
+            Track.findByIdAndUpdate(
+              trackId,
+              {
+                $inc: {
+                  numLikes: 1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating track - rollback changes made to user - then return 500 error
+                  User.findByIdAndUpdate(
+                    userIdOfCandidateLiker,
+                    {
+                      $pull: {
+                        likedTracks: {
+                          trackId: trackId
+                        }
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error liking track" });
+                    }
+                  );
+                }
+                return res.status(200).json({ message: `User ${userIdOfCandidateLiker} has liked ${trackId}` });
+              }
+            );
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to like a track from this account" });
+      }
+    });
+  });
+};
 
 exports.deleteTrackFromUserByUserId = (req, res) => {};

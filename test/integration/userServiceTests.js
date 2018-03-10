@@ -224,7 +224,7 @@ describe("User Service Integration Tests", function() {
       });
     });
 
-    describe("GET /users/:id", function() {
+    describe("GET users/:userURL/liked", function() {
       it.skip("returns status code 200 with valid data", function(done) {});
     });
   });
@@ -510,6 +510,18 @@ describe("User Service Integration Tests", function() {
     });
 
     describe("DELETE users/:userId/followees/:userIdOfFollowee", function() {
+      it.skip("returns status code 200 with valid data", function(done) {});
+
+      it.skip("returns status code 401 and correct message when no jwt access token header present", function(done) {});
+    });
+
+    describe("PUT users/:userId/liked/:trackId", function() {
+      it.skip("returns status code 200 with valid data", function(done) {});
+
+      it.skip("returns status code 401 and correct message when no jwt access token header present", function(done) {});
+    });
+
+    describe("DELETE users/:userId/liked/:trackId", function() {
       it.skip("returns status code 200 with valid data", function(done) {});
 
       it.skip("returns status code 401 and correct message when no jwt access token header present", function(done) {});

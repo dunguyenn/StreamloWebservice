@@ -31,8 +31,8 @@ protectedUserRoutes.delete("/:userId/followees/:userIdOfFollowee", function(req,
   return userController.deleteFollowedUserFromFollowedUsersList(req, res);
 });
 
-// POST liked Track to user by userID
-protectedUserRoutes.post("/:userId/liked", function(req, res) {
+// PUT liked Track to user by userID
+protectedUserRoutes.put("/:userId/liked/:trackId", function(req, res) {
   return userController.addTrackToLikedTracksByUserId(req, res);
 });
 

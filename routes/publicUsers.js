@@ -22,4 +22,9 @@ publicUserRoutes.get("/:userId/followees", function(req, res) {
   return userController.getFollowedUsersById(req, res);
 });
 
+// GET liked Tracks by userID
+publicUserRoutes.get("/:userId/liked", function(req, res) {
+  return userController.getLikedTracksByUserId(req, res);
+});
+
 module.exports = publicUserRoutes;

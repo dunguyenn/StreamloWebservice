@@ -593,3 +593,55 @@ exports.deleteFollowedUserFromFollowedUsersList = (req, res) => {
     });
   });
 };
+
+exports.getLikedTracksByUserId = (req, res) => {
+  // Default page to 1 and per_page to 5
+  if (!req.query.page) req.query.page = 1;
+  if (!req.query.per_page) req.query.per_page = 5;
+
+  const pageValidationResult = validatePageQueryStrings(req.query);
+  if (!pageValidationResult.success) {
+    return res.status(400).json({
+      message: pageValidationResult.message
+    });
+  }
+
+  let response = {};
+  let userId = req.params.userId;
+  let perPage = parseInt(req.query.per_page);
+  let requestedPage = parseInt(req.query.page);
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+
+  let query = User.findOne({
+    _id: userId
+  }).select("likedTracks");
+
+  query.exec((err, user) => {
+    if (err) return res.status(500).json({ message: "Error getting user information" });
+    if (!user) return res.status(404).json({ message: "No user found with requested userId" });
+
+    let matchingUserLikedTracks = user.likedTracks;
+    let totalNumberLikedTracksForMatchingUser = matchingUserLikedTracks.length;
+
+    if (matchingUserLikedTracks.length == 0) {
+      return res.status(200).json({ likedTracks: matchingUserLikedTracks });
+    }
+
+    getPageOfFollowees(matchingUserLikedTracks, requestedPage, perPage, likedTracksPage => {
+      if (likedTracksPage.length == 0) return res.status(200).json({ message: "No liked tracks found on this page" });
+      let pageCount = Math.ceil(totalNumberLikedTracksForMatchingUser / perPage);
+      let response = {
+        likedTracks: likedTracksPage,
+        total: totalNumberLikedTracksForMatchingUser,
+        page: requestedPage,
+        pageCount: pageCount
+      };
+      res.status(200).json(response);
+    });
+  });
+};
+
+exports.addTrackToLikedTracksByUserId = (req, res) => {};
+
+exports.deleteTrackFromUserByUserId = (req, res) => {};

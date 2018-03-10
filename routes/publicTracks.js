@@ -7,6 +7,11 @@ publicTrackRoutes.get("/", function(req, res) {
   return trackController.getTracks(req, res);
 });
 
+// GET track by trackId
+publicTrackRoutes.get("/:trackId", function(req, res) {
+  return trackController.getTrackByTrackId(req, res);
+});
+
 // GET stream of track by ID
 publicTrackRoutes.get("/:trackId/stream", function(req, res) {
   return trackController.getTrackStreamByTrackId(req, res);

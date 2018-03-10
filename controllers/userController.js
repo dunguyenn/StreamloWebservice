@@ -775,7 +775,7 @@ exports.deleteTrackFromUserByUserId = (req, res) => {
             if (err) return res.status(500).json({ message: "Error unliking track" });
             // update track - decrement number of likes by 1
 
-            User.findByIdAndUpdate(
+            Track.findByIdAndUpdate(
               trackId,
               {
                 $inc: {

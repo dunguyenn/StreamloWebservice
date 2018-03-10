@@ -155,6 +155,27 @@ exports.getTracks = (req, res) => {
     });
 };
 
+exports.getTrackByTrackId = (req, res) => {
+  let trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({ message: "No trackID provided in request params" });
+  } else if (!ObjectID.isValid(trackId)) {
+    return res.status(400).json({ message: "Invalid trackID" });
+  }
+
+  let query = Track.findOne({
+    _id: trackId
+  });
+
+  query.exec((err, track) => {
+    if (err) return res.sendStatus(500);
+    if (!track) return res.sendStatus(404);
+
+    res.status(200).json(track);
+  });
+};
+
 let getNumberOfTracks = (mongooseQueryFilter, cb) => {
   let query = Track.count(mongooseQueryFilter);
   query.exec((err, totalNumberMatchingTracks) => {

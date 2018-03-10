@@ -327,6 +327,10 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
     });
+
+    describe("GET tracks/:trackId", function() {
+      it.skip("returns status code 200 with valid data", function(done) {});
+    });
   });
 
   describe("Protected Track Endpoints", function() {

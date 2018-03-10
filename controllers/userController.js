@@ -729,4 +729,86 @@ exports.addTrackToLikedTracksByUserId = (req, res) => {
   });
 };
 
-exports.deleteTrackFromUserByUserId = (req, res) => {};
+exports.deleteTrackFromUserByUserId = (req, res) => {
+  let userId = req.params.userId;
+  let trackId = req.params.trackId;
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+  if (!ObjectID.isValid(trackId)) return res.status(400).json({ message: "Invalid trackId in request" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!user) return res.status(404).json({ message: "userId in request body does not map to user on system" });
+
+    // query db to check if trackId of track maps to a track on database
+    Track.findOne({ _id: trackId }, (err, track) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!track) return res.status(404).json({ message: "trackId in request body does not map to track on system" });
+
+      // check if requestor has permission to remove this track from likedTracks list on this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userId) {
+        // check if user liked tracks list contains track - if not then proceed no further
+        let userHasNotLikedThisTrack = true;
+        user.likedTracks.forEach(likedTrack => {
+          if (likedTrack.trackId == trackId) {
+            userHasNotLikedThisTrack = false;
+          }
+        });
+        if (userHasNotLikedThisTrack) {
+          return res.status(400).json({
+            message: `Unable to remove track from liked tracks list. This user ${userId} has not liked this track ${trackId}`
+          });
+        }
+
+        User.findByIdAndUpdate(
+          userId,
+          {
+            $pull: {
+              likedTracks: {
+                trackId: trackId
+              }
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error unliking track" });
+            // update track - decrement number of likes by 1
+
+            User.findByIdAndUpdate(
+              trackId,
+              {
+                $inc: {
+                  numLikes: -1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating track - rollback changes made to user - then return 500 error
+                  User.findByIdAndUpdate(
+                    userId,
+                    {
+                      $push: {
+                        likedTracks: {
+                          trackId: trackId
+                        }
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error unliking track user" });
+                    }
+                  );
+                }
+                return res.status(200).json({
+                  message: `User ${userId} has removed track ${trackId} from likes list`
+                });
+              }
+            );
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to unlike a track from this account" });
+      }
+    });
+  });
+};

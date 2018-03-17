@@ -1,4 +1,6 @@
 const User = require("../models/userModel.js");
+const Track = require("../models/trackModel.js");
+
 const mongodb = require("mongodb");
 const ObjectID = require("mongodb").ObjectID;
 const mongoose = require("mongoose");
@@ -369,7 +371,7 @@ exports.getFollowedUsersById = (req, res) => {
       return res.status(200).json({ followees: matchingUserFollowees });
     }
 
-    getPageOfFollowees(matchingUserFollowees, requestedPage, perPage, followeesPage => {
+    getPageOfAttributes(matchingUserFollowees, requestedPage, perPage, followeesPage => {
       if (followeesPage.length == 0) return res.status(200).json({ message: "No followees found on this page" });
       let pageCount = Math.ceil(totalNumberFolloweesForMatchingUser / perPage);
       let response = {
@@ -383,19 +385,19 @@ exports.getFollowedUsersById = (req, res) => {
   });
 };
 
-let getPageOfFollowees = (userFollowees, reqPage, perPage, cb) => {
+let getPageOfAttributes = (userAttributes, reqPage, perPage, cb) => {
   // calculate initial Followee on this page by skiping the first x number of Followees
   // where x is the product of perPage * (requestedPage - 1)
 
-  let followeesPage = [];
-  let firstFolloweeNum = perPage * (reqPage - 1);
-  let lastFolloweeNum = firstFolloweeNum + perPage;
+  let attributesPage = [];
+  let firstAttributeNum = perPage * (reqPage - 1);
+  let lastAttributeNum = firstAttributeNum + perPage;
 
-  for (let followeeNum = firstFolloweeNum; followeeNum < lastFolloweeNum; followeeNum++) {
-    if (!userFollowees[followeeNum]) break;
-    followeesPage.push(userFollowees[followeeNum]);
+  for (let AttributeNum = firstAttributeNum; AttributeNum < lastAttributeNum; AttributeNum++) {
+    if (!userAttributes[AttributeNum]) break;
+    attributesPage.push(userAttributes[AttributeNum]);
   }
-  cb(followeesPage);
+  cb(attributesPage);
 };
 
 exports.addUserToFollowedUsersById = (req, res) => {
@@ -453,9 +455,39 @@ exports.addUserToFollowedUsersById = (req, res) => {
           },
           err => {
             if (err) return res.status(500).json({ message: "Error following user" });
-            return res
-              .status(200)
-              .json({ message: `User ${userIdOfCandidateFollower} is now following user ${followeeUserId}` });
+
+            User.findByIdAndUpdate(
+              followeeUserId,
+              {
+                $inc: {
+                  numberOfFollowers: 1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating followee - rollback changes made to follower - then return 500 error
+                  User.findByIdAndUpdate(
+                    userIdOfCandidateFollower,
+                    {
+                      $pull: {
+                        followees: {
+                          userId: followeeUserId
+                        }
+                      },
+                      $inc: {
+                        numberOfFollowees: -1
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error following user" });
+                    }
+                  );
+                }
+                return res
+                  .status(200)
+                  .json({ message: `User ${userIdOfCandidateFollower} is now following user ${followeeUserId}` });
+              }
+            );
           }
         );
       } else {
@@ -521,13 +553,261 @@ exports.deleteFollowedUserFromFollowedUsersList = (req, res) => {
           },
           err => {
             if (err) return res.status(500).json({ message: "Error following user" });
-            return res
-              .status(200)
-              .json({ message: `User ${userIdOfFollower} has unfollowed user ${candidateExFolloweeUserId}` });
+            // update followee - decrement number of followers by 1
+
+            User.findByIdAndUpdate(
+              candidateExFolloweeUserId,
+              {
+                $inc: {
+                  numberOfFollowers: -1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating followee - rollback changes made to follower - then return 500 error
+                  User.findByIdAndUpdate(
+                    userIdOfFollower,
+                    {
+                      $push: {
+                        followees: {
+                          userId: candidateExFolloweeUserId
+                        }
+                      },
+                      $inc: {
+                        numberOfFollowees: 1
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error following user" });
+                    }
+                  );
+                }
+                return res.status(200).json({
+                  message: `User ${userIdOfFollower} is no longer following user ${candidateExFolloweeUserId}`
+                });
+              }
+            );
           }
         );
       } else {
         return res.status(403).json({ message: "Unauthorized to unfollow a user from this account" });
+      }
+    });
+  });
+};
+
+exports.getLikedTracksByUserId = (req, res) => {
+  // Default page to 1 and per_page to 5
+  if (!req.query.page) req.query.page = 1;
+  if (!req.query.per_page) req.query.per_page = 5;
+
+  const pageValidationResult = validatePageQueryStrings(req.query);
+  if (!pageValidationResult.success) {
+    return res.status(400).json({
+      message: pageValidationResult.message
+    });
+  }
+
+  let response = {};
+  let userId = req.params.userId;
+  let perPage = parseInt(req.query.per_page);
+  let requestedPage = parseInt(req.query.page);
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+
+  let query = User.findOne({
+    _id: userId
+  }).select("likedTracks");
+
+  query.exec((err, user) => {
+    if (err) return res.status(500).json({ message: "Error getting user information" });
+    if (!user) return res.status(404).json({ message: "No user found with requested userId" });
+
+    let matchingUserLikedTracks = user.likedTracks;
+    let totalNumberLikedTracksForMatchingUser = matchingUserLikedTracks.length;
+
+    if (matchingUserLikedTracks.length == 0) {
+      return res.status(200).json({ likedTracks: matchingUserLikedTracks });
+    }
+
+    getPageOfAttributes(matchingUserLikedTracks, requestedPage, perPage, likedTracksPage => {
+      if (likedTracksPage.length == 0) return res.status(200).json({ message: "No liked tracks found on this page" });
+      let pageCount = Math.ceil(totalNumberLikedTracksForMatchingUser / perPage);
+      let response = {
+        likedTracks: likedTracksPage,
+        total: totalNumberLikedTracksForMatchingUser,
+        page: requestedPage,
+        pageCount: pageCount
+      };
+      res.status(200).json(response);
+    });
+  });
+};
+
+exports.addTrackToLikedTracksByUserId = (req, res) => {
+  let userId = req.params.userId;
+  let trackId = req.params.trackId;
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+  if (!ObjectID.isValid(trackId)) return res.status(400).json({ message: "Invalid trackId in request" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!user) return res.status(404).json({ message: "userId in request body does not map to user on system" });
+
+    let userIdOfCandidateLiker = user.id;
+
+    // query db to check if trackId in req maps to a track on database
+    Track.findOne({ _id: trackId }, (err, track) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!track) return res.status(404).json({ message: "trackId in request body does not map to track on system" });
+
+      // check if requestor has permission to like a track from this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userIdOfCandidateLiker) {
+        // check if follower is already following candidate followee
+        let userHasAlreadyLikedTrack = false;
+        user.likedTracks.forEach(likedTrack => {
+          if (likedTrack.trackId == trackId) {
+            userHasAlreadyLikedTrack = true;
+          }
+        });
+        if (userHasAlreadyLikedTrack) {
+          return res
+            .status(400)
+            .json({ message: `This user ${userIdOfCandidateLiker} already likes the track ${trackId}` });
+        }
+
+        // If user has not already liked candidate liked track - proceed to update user
+        User.findByIdAndUpdate(
+          userIdOfCandidateLiker,
+          {
+            $push: {
+              likedTracks: {
+                trackId: trackId
+              }
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error liking track" });
+
+            // If user update successful - proceed to update track
+            Track.findByIdAndUpdate(
+              trackId,
+              {
+                $inc: {
+                  numLikes: 1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating track - rollback changes made to user - then return 500 error
+                  User.findByIdAndUpdate(
+                    userIdOfCandidateLiker,
+                    {
+                      $pull: {
+                        likedTracks: {
+                          trackId: trackId
+                        }
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error liking track" });
+                    }
+                  );
+                }
+                return res.status(200).json({ message: `User ${userIdOfCandidateLiker} has liked ${trackId}` });
+              }
+            );
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to like a track from this account" });
+      }
+    });
+  });
+};
+
+exports.deleteTrackFromUserByUserId = (req, res) => {
+  let userId = req.params.userId;
+  let trackId = req.params.trackId;
+
+  if (!ObjectID.isValid(userId)) return res.status(400).json({ message: "Invalid userId in request" });
+  if (!ObjectID.isValid(trackId)) return res.status(400).json({ message: "Invalid trackId in request" });
+
+  let requestorUserIdFromDecodedJWTToken = req.decoded.userId;
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (err) return res.status(500).json({ message: "Error updating user information" });
+    if (!user) return res.status(404).json({ message: "userId in request body does not map to user on system" });
+
+    // query db to check if trackId of track maps to a track on database
+    Track.findOne({ _id: trackId }, (err, track) => {
+      if (err) return res.status(500).json({ message: "Error updating user information" });
+      if (!track) return res.status(404).json({ message: "trackId in request body does not map to track on system" });
+
+      // check if requestor has permission to remove this track from likedTracks list on this account (requestors userId is equal to userId of returned user document)
+      if (requestorUserIdFromDecodedJWTToken == userId) {
+        // check if user liked tracks list contains track - if not then proceed no further
+        let userHasNotLikedThisTrack = true;
+        user.likedTracks.forEach(likedTrack => {
+          if (likedTrack.trackId == trackId) {
+            userHasNotLikedThisTrack = false;
+          }
+        });
+        if (userHasNotLikedThisTrack) {
+          return res.status(400).json({
+            message: `Unable to remove track from liked tracks list. This user ${userId} has not liked this track ${trackId}`
+          });
+        }
+
+        User.findByIdAndUpdate(
+          userId,
+          {
+            $pull: {
+              likedTracks: {
+                trackId: trackId
+              }
+            }
+          },
+          err => {
+            if (err) return res.status(500).json({ message: "Error unliking track" });
+            // update track - decrement number of likes by 1
+
+            Track.findByIdAndUpdate(
+              trackId,
+              {
+                $inc: {
+                  numLikes: -1
+                }
+              },
+              err => {
+                if (err) {
+                  // If error occurs updating track - rollback changes made to user - then return 500 error
+                  User.findByIdAndUpdate(
+                    userId,
+                    {
+                      $push: {
+                        likedTracks: {
+                          trackId: trackId
+                        }
+                      }
+                    },
+                    err => {
+                      return res.status(500).json({ message: "Error unliking track user" });
+                    }
+                  );
+                }
+                return res.status(200).json({
+                  message: `User ${userId} has removed track ${trackId} from likes list`
+                });
+              }
+            );
+          }
+        );
+      } else {
+        return res.status(403).json({ message: "Unauthorized to unlike a track from this account" });
       }
     });
   });

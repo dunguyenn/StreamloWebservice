@@ -69,7 +69,7 @@ var userSchema = new Schema({
   },
   likedTracks: [
     {
-      likedTrack: {
+      trackId: {
         type: ObjectId
       }
     }

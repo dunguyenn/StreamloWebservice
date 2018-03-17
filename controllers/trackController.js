@@ -13,12 +13,13 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 2, parts: 9 } });
 const logger = require("winston");
 
-exports.getTrackStreamByGridFSId = function(req, res) {
-  let trackId;
-  if (!ObjectID.isValid(req.params.trackId)) {
+exports.getTrackStreamByTrackId = function(req, res) {
+  let trackId = req.params.trackId;
+
+  if (!ObjectID.isValid(trackId) || !trackId) {
     res.status(400).json({ message: "Invalid trackID" });
   } else {
-    trackId = new ObjectID(req.params.trackId);
+    trackId = new ObjectID(trackId);
 
     let db = mongoose.connection.db;
     var bucket = new mongodb.GridFSBucket(db, {
@@ -28,19 +29,35 @@ exports.getTrackStreamByGridFSId = function(req, res) {
     res.set("content-type", "audio/mp3");
     res.set("accept-ranges", "bytes");
 
-    // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
-    var downloadStream = bucket.openDownloadStream(trackId);
-
-    downloadStream.on("data", chunk => {
-      res.write(chunk);
+    let query = Track.findOne({
+      _id: trackId
     });
 
-    downloadStream.on("error", () => {
-      res.sendStatus(404);
-    });
+    query.exec((err, track) => {
+      if (err) return res.sendStatus(500);
+      if (!track) return res.sendStatus(404);
 
-    downloadStream.on("end", () => {
-      res.end();
+      let trackGridFSId = track.trackBinaryId;
+
+      // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
+      var downloadStream = bucket.openDownloadStream(trackGridFSId);
+
+      downloadStream.on("data", chunk => {
+        res.write(chunk);
+      });
+
+      downloadStream.on("error", () => {
+        res.sendStatus(404);
+      });
+
+      downloadStream.on("end", () => {
+        // Increment play count
+        track.numPlays = track.numPlays + 1;
+        track.save({ validateBeforeSave: false }, err => {
+          if (err) logger.error(`Error updating playcount for track ${track._id}`);
+        });
+        res.end();
+      });
     });
   }
 };
@@ -136,6 +153,27 @@ exports.getTracks = (req, res) => {
         });
       }
     });
+};
+
+exports.getTrackByTrackId = (req, res) => {
+  let trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({ message: "No trackID provided in request params" });
+  } else if (!ObjectID.isValid(trackId)) {
+    return res.status(400).json({ message: "Invalid trackID" });
+  }
+
+  let query = Track.findOne({
+    _id: trackId
+  });
+
+  query.exec((err, track) => {
+    if (err) return res.sendStatus(500);
+    if (!track) return res.sendStatus(404);
+
+    res.status(200).json(track);
+  });
 };
 
 let getNumberOfTracks = (mongooseQueryFilter, cb) => {

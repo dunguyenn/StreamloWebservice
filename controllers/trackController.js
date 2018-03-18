@@ -299,11 +299,12 @@ exports.postTrack = (req, res) => {
         readableTrackStream.push(null);
         readableTrackStream.pipe(trackUploadStream);
 
-        trackUploadStream.on("error", () => {
+        trackUploadStream.on("error", error => {
+          logger.error(`Error streaming uploaded track to gridfs ${error}`);
           res.status(500).json({ message: "Error uploading file" });
         });
 
-        trackUploadStream.on("finish", () => {
+        trackUploadStream.once("finish", () => {
           // If track piped to gridFS successfully, attempt to update user model
           User.findByIdAndUpdate(
             uploderId,
@@ -333,7 +334,8 @@ exports.postTrack = (req, res) => {
                 readableAlbumArtStream.push(null);
                 readableAlbumArtStream.pipe(albumArtuploadStream);
 
-                albumArtuploadStream.on("error", () => {
+                albumArtuploadStream.on("error", error => {
+                  logger.error(`Error streaming album art to gridfs ${error}`);
                   // on error storing album art - undo updates to uploader user model and remove track
                   Track.findOneAndRemove({ _id: track._id }, err => {
                     User.findByIdAndUpdate(
@@ -358,7 +360,7 @@ exports.postTrack = (req, res) => {
                   });
                 });
 
-                albumArtuploadStream.on("finish", () => {
+                albumArtuploadStream.once("finish", () => {
                   let message = {
                     message: "File uploaded successfully",
                     trackBinaryId: track.id

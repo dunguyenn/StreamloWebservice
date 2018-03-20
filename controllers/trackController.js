@@ -238,10 +238,13 @@ let postTrackFields = [{ name: "track", maxCount: 1 }, { name: "albumArt", maxCo
 exports.postTrack = (req, res) => {
   upload.fields(postTrackFields)(req, res, err => {
     if (err) {
+      logger.error(`Maximum number of track/albumArt files present in body`);
+
       return res.status(400).json({ message: "Error uploading your track" });
     }
     const validationResult = validatePostTrackForm(req.body, req.files);
     if (!validationResult.success) {
+      logger.error(`Post track endpoint validation error ${validationResult.message}`);
       return res.status(400).json({
         message: validationResult.message
       });
@@ -249,6 +252,7 @@ exports.postTrack = (req, res) => {
 
     let trackTitle = req.body.title;
     let uploderId = req.body.uploaderId;
+    let uploaderIdPresentInAuthToken = req.decoded.userId;
 
     let db = mongoose.connection.db;
     let trackBucket = new mongodb.GridFSBucket(db, {
@@ -284,6 +288,7 @@ exports.postTrack = (req, res) => {
 
     track.save(function(err, track) {
       if (err) {
+        logger.error(`Error saving track metadata ${err}`);
         switch (err.message) {
           case "No User associated with uploaderID":
             res.status(400).json({ message: "No User account associated with uploaderID" });
@@ -292,6 +297,11 @@ exports.postTrack = (req, res) => {
             res.status(500).json({ message: "Error uploading file" });
         }
       } else {
+        if (uploaderIdPresentInAuthToken != uploderId) {
+          console.log(uploaderIdPresentInAuthToken + " " + uploderId);
+          return res.status(403).json({ message: "Unauthorized to post track too this user" });
+        }
+
         // If track document saves successfully, attempt to stream track from buffer to gridfs
         // Covert buffer to Readable Stream
         const readableTrackStream = new Readable();
@@ -320,6 +330,8 @@ exports.postTrack = (req, res) => {
             },
             err => {
               if (err) {
+                logger.error(`Error updating uploader user data ${err}`);
+
                 // If uploaders user document fails to update, delete track document
                 // && Delete track file from gridFS (handled by TrackModel middleware)
                 Track.findOneAndRemove({ _id: track._id }, err => {
@@ -352,6 +364,8 @@ exports.postTrack = (req, res) => {
                       },
                       err => {
                         if (err) {
+                          logger.error(`Error updating uploader user data after error uploading album art ${err}`);
+
                           return res.status(500).json({ message: "Error uploading file" });
                         }
                         res.status(500).json({ message: "Error uploading file" });

@@ -10,7 +10,7 @@ const ObjectID = require("mongodb").ObjectID;
 const { Readable } = require("stream");
 const multer = require("multer");
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fields: 7, fileSize: 6000000, files: 2, parts: 9 } });
+const upload = multer({ storage: storage, limits: { fields: 8, fileSize: 6000000, parts: 9 } });
 const logger = require("winston");
 
 exports.getTrackStreamByTrackId = function(req, res) {
@@ -238,8 +238,7 @@ let postTrackFields = [{ name: "track", maxCount: 1 }, { name: "albumArt", maxCo
 exports.postTrack = (req, res) => {
   upload.fields(postTrackFields)(req, res, err => {
     if (err) {
-      logger.error(`Maximum number of track/albumArt files present in body`);
-
+      logger.error(`Maximum number of track/albumArt files present in body ${err}`);
       return res.status(400).json({ message: "Error uploading your track" });
     }
     const validationResult = validatePostTrackForm(req.body, req.files);
@@ -262,7 +261,9 @@ exports.postTrack = (req, res) => {
       bucketName: "albumArtBinaryFiles"
     });
 
-    let trackUploadStream = trackBucket.openUploadStream(req.files.track[0].originalname, { contentType: "audio/mp3" });
+    let trackUploadStream = trackBucket.openUploadStream(req.files.track[0].originalname, {
+      contentType: "audio/mp3"
+    });
     let trackGridFSId = trackUploadStream.id;
 
     let albumArtuploadStream = undefined;

@@ -452,22 +452,22 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
-      it("retuns status code 400 and correct message with duplicate trackURL in body", function(done) {
-        var uploaderIDThatDoesNotMapToAnyTestUser = "5b2d83d81b815cd644df5468";
+      it("retuns status code 500 and correct message with duplicate trackURL in body", function(done) {
+        //var uploaderIDThatDoesNotMapToAnyTestUser = "5b2d83d81b815cd644df5468";
         request(app)
           .post("/tracks")
           .set("x-access-token", testUserToken)
           .field("title", "testTrack")
           .field("genre", "Pop")
           .field("city", "Belfast")
-          .field("trackURL", "test123")
+          .field("trackURL", "test1")
           .field("dateUploaded", validDate)
-          .field("uploaderId", uploaderIDThatDoesNotMapToAnyTestUser)
+          .field("uploaderId", testUser._id.toString())
           .field("description", "testDesc")
           .attach("track", "test/littleidea.mp3")
-          .expect(400)
+          .expect(500)
           .expect(function(res) {
-            res.body.message.should.equal("No User account associated with uploaderID");
+            res.body.message.should.equal("Error uploading file");
           })
           .end(done);
       });

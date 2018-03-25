@@ -18,11 +18,13 @@ var trackURLValidator = [
 ];
 
 var dateUploadedValidator = [
-  // Only dates after date.now permitted
+  // trackUploadedDate is only valid if it is within the current date (according to server) plus/minus 30 mins
   function(trackUploadDateISOString) {
-    let dateNow = moment().subtract(30, "minute");
+    let dateNowPlusThirtyMins = moment().add(30, "minute");
+    let dateNowMinusThirtyMins = moment().subtract(30, "minute");
+
     let trackUploadedDate = moment(trackUploadDateISOString);
-    if (trackUploadedDate.isBefore(dateNow)) {
+    if (trackUploadedDate.isAfter(dateNowPlusThirtyMins) || trackUploadedDate.isBefore(dateNowMinusThirtyMins)) {
       return false;
     } else {
       return true;

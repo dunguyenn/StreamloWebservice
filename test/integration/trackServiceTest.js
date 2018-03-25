@@ -582,7 +582,7 @@ describe("Track Service Integration Tests", function() {
           .end(done);
       });
 
-      it("retuns status code 400 and correct message with track key set to string value", function(done) {
+      it("retuns status code 400 and correct message with 'track' key in form-data request body set to string value", function(done) {
         request(app)
           .post("/tracks")
           .set("x-access-token", testUserToken)
@@ -596,7 +596,7 @@ describe("Track Service Integration Tests", function() {
           .field("track", "test/littleidea.mp3")
           .expect(400)
           .expect(function(res) {
-            res.body.message.should.equal("Error uploading your track");
+            res.body.message.should.equal("No track in request body.");
           })
           .end(done);
       });

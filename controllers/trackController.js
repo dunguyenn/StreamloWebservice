@@ -217,7 +217,7 @@ function validatePostTrackForm(fields, files) {
   } else if (!moment(dateUploaded, moment.ISO_8601).isValid()) {
     logger.warn("Invalid dateUploaded in request body");
     return { success: false, message: "Invalid dateUploaded in request body." };
-  } else if (moment(dateUploaded).isBefore(moment(), "hour")) {
+  } else if (moment(dateUploaded).isBefore(moment().subtract(30, "minute"), "minute")) {
     return { success: false, message: "Date invalid, it is more then thirty minutes before upload date." };
   }
   if (!uploaderId || typeof uploaderId !== "string") {

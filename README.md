@@ -1,36 +1,43 @@
 # Streamlo Webservice
-The streamlo system was created for my final year project at university
+The streamlo application was created for my final year project at university
 
 You can find the frontend component : [Here](https://github.com/richard534/StreamloFrontEnd)
 
 Powered by:
 <ul>
-  <li>ReactJS</li> 
-  <li>ExpressJS</li> 
-  <li>NodeJS</li> 
-  <li>MongoDB</li> 
+  <li>Node</li>
+  <li>Express</li>
+  <li>MongoDB</li>
 </ul>
 
 Web service utillizes a number on NPM modules including:
 <ul>
-  <li>Gulp</li>
   <li>Mongoose</li>
   <li>Passport</li>
-  <li>Passport-local</li>
-  <li>GridFS-stream</li>
   <li>Multer</li>
   <li>Body-Parser</li>
   <li>Dotenv</li>
+  <li>bcrypt</li>
+  <li>bluebird</li>
+  <li>eslint</li>
+  <li>lodash</li>
+  <li>moment</li>
+  <li>validator</li>
+  <li>chai</li>
+  <li>mocha</li>
+  <li>supertest</li>
+  <li>nodemon</li>
+  <li>nyc (Istanbul)</li>
+  <li>prettier</li>
+  <li>rewire</li>
 </ul>
 
-## Installation
-#### OSX/Windows
+## Local Machine Installation
+##### Prerequisites
+* Node v8.5.0^
+* MongoDB (mongod) running on local machine
 
-1.	Install mongodb (https://www.mongodb.com/)
-2.	Run "mongod" to start the mongodb daemon 
-3.	Install nodejs / v5.0^ (and greater) (https://nodejs.org/en/)
-4.	Navigate to downloaded repository directory in CLI
-5.  Rename ".env.example" to ".env" and change the placeholder values to suit your machines environment.
-6.	Run “npm install”
-7.	Run "npm install -g gulp"
-8.	Run "gulp"
+#### OSX/Windows
+1.  Rename ".env.example" to ".env" and change the placeholder values to suit your environment.
+2.	Run “npm install”
+3.	Run "npm start"

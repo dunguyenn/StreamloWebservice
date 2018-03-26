@@ -10,7 +10,7 @@ Powered by:
   <li>MongoDB</li>
 </ul>
 
-Web service utillizes a number on NPM modules including:
+Streamlo Web service utillizes a number on NPM modules including:
 <ul>
   <li>Mongoose</li>
   <li>Passport</li>

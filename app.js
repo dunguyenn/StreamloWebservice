@@ -2,6 +2,7 @@
  * Module dependencies.
  */
 const express = require("express");
+const helmet = require("helmet");
 const errorHandler = require("errorhandler");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -55,6 +56,7 @@ mongoose.connection.on("error", () => {
  */
 // app.use is Binding application-level middleware to an instance of the app object
 app.set("port", process.env.PORT || 3001);
+app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json()); // for parsing application/json
 app.use(

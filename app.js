@@ -11,6 +11,7 @@ const passport = require("passport");
 const cors = require("cors");
 const compression = require("compression");
 const bluebird = require("bluebird");
+const path = require("path");
 
 /**
  * Load environment variables from .env file.
@@ -66,6 +67,7 @@ app.use(
 ); // for parsing application/x-www-form-urlencoded
 app.use(errorHandler()); // Error Handler
 app.use(compression());
+app.use("/static", express.static(path.join(__dirname, "public")));
 
 /**
  * Load Passport Strategys.

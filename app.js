@@ -2,6 +2,7 @@
  * Module dependencies.
  */
 const express = require("express");
+const helmet = require("helmet");
 const errorHandler = require("errorhandler");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -10,6 +11,7 @@ const passport = require("passport");
 const cors = require("cors");
 const compression = require("compression");
 const bluebird = require("bluebird");
+const path = require("path");
 
 /**
  * Load environment variables from .env file.
@@ -55,6 +57,7 @@ mongoose.connection.on("error", () => {
  */
 // app.use is Binding application-level middleware to an instance of the app object
 app.set("port", process.env.PORT || 3001);
+app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json()); // for parsing application/json
 app.use(
@@ -64,6 +67,7 @@ app.use(
 ); // for parsing application/x-www-form-urlencoded
 app.use(errorHandler()); // Error Handler
 app.use(compression());
+app.use("/static", express.static(path.join(__dirname, "public")));
 
 /**
  * Load Passport Strategys.

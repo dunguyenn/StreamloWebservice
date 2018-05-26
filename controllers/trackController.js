@@ -686,16 +686,7 @@ exports.getTrackAlbumArtById = (req, res) => {
       });
 
       downloadStream.on("error", () => {
-        // If this track has no album art associated with it - return default album art
-        var options = {
-          root: "public",
-          dotfiles: "deny",
-          headers: {
-            "content-type": "image/png"
-          }
-        };
-
-        res.sendFile("defaultAlbumArt.png", options);
+        res.redirect("/static/defaultAlbumArt.png");
       });
 
       downloadStream.on("end", () => {

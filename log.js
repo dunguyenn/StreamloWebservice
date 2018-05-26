@@ -1,7 +1,7 @@
 const fs = require("fs");
 const moment = require("moment");
 const winston = require("winston");
-const env = process.env.NODE_ENV || "development";
+const env = process.env.NODE_ENV || "dev";
 
 // Create the log directory if it does not exist
 const logDir = "log";
@@ -19,7 +19,7 @@ logger.configure({
       name: "console.log",
       timestamp: tsFormat,
       colorize: true,
-      level: env === "development" ? "debug" : "info",
+      level: env === "dev" ? "debug" : "info",
       silent: env === "test" ? true : false
     }),
     new (require("winston-daily-rotate-file"))({
@@ -28,7 +28,7 @@ logger.configure({
       timestamp: tsFormat,
       datePattern: "yyyy-MM-dd",
       prepend: true,
-      level: env === "development" ? "debug" : "info",
+      level: env === "dev" ? "debug" : "info",
       silent: env === "test" ? true : false,
       maxDays: 30
     })

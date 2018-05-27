@@ -356,7 +356,7 @@ describe("Track Service Integration Tests", function() {
           .expect(201)
           .expect(function(res) {
             res.body.message.should.equal("File uploaded successfully");
-            assert.equal(ObjectID.isValid(res.body.trackBinaryId), true);
+            assert.equal(ObjectID.isValid(res.body.trackId), true);
           })
           .end(done);
       });

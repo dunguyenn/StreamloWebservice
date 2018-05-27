@@ -22,8 +22,9 @@ publicTrackRoutes.get("/:trackId/comments", function(req, res) {
   return trackController.getTrackCommentsById(req, res);
 });
 
+// GET album art of track by ID
 publicTrackRoutes.get("/:trackId/albumArt", function(req, res) {
-  return trackController.getTrackAlbumArtById(req, res);
+  return trackController.getTrackAlbumArtByTrackId(req, res);
 });
 
 module.exports = publicTrackRoutes;

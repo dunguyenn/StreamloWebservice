@@ -12,6 +12,8 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fields: 8, fileSize: 6000000, parts: 9 } });
 const logger = require("winston");
+const S3 = require("aws-sdk/clients/s3");
+const uuidv4 = require("uuid/v4");
 
 exports.getTrackStreamByTrackId = function(req, res) {
   let trackId = req.params.trackId;
@@ -126,7 +128,7 @@ exports.getTracks = (req, res) => {
 
   Track.find(mongooseQueryFilter, {})
     .select(
-      "title genre description trackURL city numPlays numLikes numComments uploaderId dateUploaded trackBinaryId albumArtBinaryId"
+      "title genre description trackURL city numPlays numLikes numComments uploaderId dateUploaded trackBinaryId albumArtURI"
     )
     .sort({
       numPlays: "desc"
@@ -266,15 +268,6 @@ exports.postTrack = (req, res) => {
     });
     let trackGridFSId = trackUploadStream.id;
 
-    let albumArtuploadStream = undefined;
-    let albumArtGridFSId = undefined;
-    if (req.files.albumArt) {
-      albumArtuploadStream = albumArtBucket.openUploadStream(req.files.albumArt[0].originalname, {
-        contentType: "image/*"
-      });
-      albumArtGridFSId = albumArtuploadStream.id;
-    }
-
     var track = new Track({
       title: req.body.title,
       genre: req.body.genre,
@@ -283,8 +276,7 @@ exports.postTrack = (req, res) => {
       dateUploaded: req.body.dateUploaded,
       uploaderId: req.body.uploaderId,
       description: req.body.description,
-      trackBinaryId: trackGridFSId,
-      albumArtBinaryId: albumArtGridFSId
+      trackBinaryId: trackGridFSId
     });
 
     track.save(function(err, track) {
@@ -299,7 +291,6 @@ exports.postTrack = (req, res) => {
         }
       } else {
         if (uploaderIdPresentInAuthToken != uploderId) {
-          console.log(uploaderIdPresentInAuthToken + " " + uploderId);
           return res.status(403).json({ message: "Unauthorized to post track too this user" });
         }
 
@@ -340,52 +331,87 @@ exports.postTrack = (req, res) => {
                 });
               }
 
-              // After user model successfully updated - attempt store album art in gridfs (if album art present in request)
-              if (albumArtuploadStream) {
-                const readableAlbumArtStream = new Readable();
-                readableAlbumArtStream.push(req.files.albumArt[0].buffer);
-                readableAlbumArtStream.push(null);
-                readableAlbumArtStream.pipe(albumArtuploadStream);
+              // After user model successfully updated - attempt upload album art to s3 (if album art present in request)
+              if (req.files.albumArt) {
+                // attempt upload to s3
+                // if fail revert entire upload process
+                // if OK update track with albumArtURI
 
-                albumArtuploadStream.on("error", error => {
-                  logger.error(`Error streaming album art to gridfs ${error}`);
-                  // on error storing album art - undo updates to uploader user model and remove track
-                  Track.findOneAndRemove({ _id: track._id }, err => {
-                    User.findByIdAndUpdate(
-                      uploderId,
-                      {
-                        $pull: {
-                          uploadedTracks: {
-                            trackID: track._id
-                          }
-                        },
-                        $inc: {
-                          numberOfTracksUploaded: -1
-                        }
-                      },
-                      err => {
-                        if (err) {
-                          logger.error(`Error updating uploader user data after error uploading album art ${err}`);
+                const albumArtBuffer = req.files.albumArt[0].buffer;
+                const albumArtUuid = uuidv4();
+                const s3AlbumArtKey = "album-art/" + albumArtUuid;
 
-                          return res.status(500).json({ message: "Error uploading file" });
-                        }
-                        res.status(500).json({ message: "Error uploading file" });
-                      }
-                    );
-                  });
+                var s3 = new S3({
+                  apiVersion: "2006-03-01",
+                  params: { Bucket: "streamlo" }
                 });
 
-                albumArtuploadStream.once("finish", () => {
-                  let message = {
-                    message: "File uploaded successfully",
-                    trackBinaryId: track.id
-                  };
-                  res.status(201).json(message);
+                var params = {
+                  Body: albumArtBuffer,
+                  Key: s3AlbumArtKey,
+                  ACL: "public-read",
+                  ContentType: "image/png"
+                };
+
+                s3.upload(params, function(err, data) {
+                  if (err) {
+                    logger.error(`Error uploading album art to s3 ${err}`);
+                    // on error storing album art - undo updates to uploader user model and remove track
+                    Track.findOneAndRemove({ _id: track._id }, err => {
+                      User.findByIdAndUpdate(
+                        uploderId,
+                        {
+                          $pull: {
+                            uploadedTracks: {
+                              trackID: track._id
+                            }
+                          },
+                          $inc: {
+                            numberOfTracksUploaded: -1
+                          }
+                        },
+                        err => {
+                          if (err) {
+                            logger.error(`Error updating uploader user data after error uploading album art ${err}`);
+
+                            return res.status(500).json({ message: "Error uploading file" });
+                          }
+                          res.status(500).json({ message: "Error uploading file" });
+                        }
+                      );
+                    });
+                  } else {
+                    // On succesfuly uploading album art to s3
+                    // Update saved track to include s3 uri
+
+                    Track.findOne({ _id: track._id }, (err, track) => {
+                      track.albumArtURI = data.Location;
+                      track.albumArtS3Uuid = albumArtUuid;
+                      track.save({ validateBeforeSave: false }, err => {
+                        if (err) {
+                          logger.error(`Error updating track with albumArtURI ${track._id}`);
+                          var params = {
+                            Key: s3AlbumArtKey
+                          };
+                          s3.deleteObject(params, (err, data) => {
+                            if (err)
+                              logger.error(`Error deleting albumArt from s3 after failed upload attempt ${track._id}`);
+                          });
+                        }
+                      });
+                    });
+
+                    let message = {
+                      message: "File uploaded successfully",
+                      trackId: track._id
+                    };
+                    res.status(201).json(message);
+                  }
                 });
               } else {
                 let message = {
                   message: "File uploaded successfully",
-                  trackBinaryId: track.id
+                  trackId: track._id
                 };
                 res.status(201).json(message);
               }
@@ -438,6 +464,18 @@ exports.deleteTrackByTrackURL = function(req, res) {
         // if clientUploaderId from provided JWT token equals uploaderId Of CandidateTrack; user has permission to delete this track
         Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
           if (err) return res.status(500).json({ message: "Error deleting track" });
+          var s3 = new S3({
+            apiVersion: "2006-03-01",
+            params: { Bucket: "streamlo" }
+          });
+
+          var params = {
+            Key: "album-art/" + candidateTrackToBeDeleted.albumArtS3Uuid
+          };
+          s3.deleteObject(params, (err, data) => {
+            if (err) logger.error(`Error deleting albumArt from s3 after failed upload attempt ${track._id}`);
+          });
+
           res.status(200).json({ message: `Track with trackURL '${trackURL}' deleted successfully` });
         });
       } else {
@@ -467,6 +505,18 @@ exports.deleteTrackByTrackId = function(req, res) {
         // if clientUploaderId from provided JWT token equals uploaderId Of CandidateTrack; user has permission to delete this track
         Track.findOneAndRemove({ _id: candidateTrackToBeDeleted._id }, err => {
           if (err) return res.status(500).json({ message: "Error deleting track" });
+          var s3 = new S3({
+            apiVersion: "2006-03-01",
+            params: { Bucket: "streamlo" }
+          });
+
+          var params = {
+            Key: "album-art/" + candidateTrackToBeDeleted.albumArtS3Uuid
+          };
+          s3.deleteObject(params, (err, data) => {
+            if (err) logger.error(`Error deleting albumArt from s3 after failed upload attempt ${track._id}`);
+          });
+
           res.status(200).json({ message: `Track with trackId '${trackId}' deleted successfully` });
         });
       } else {
@@ -660,7 +710,7 @@ exports.updateTrackDescriptionByTrackURL = (req, res) => {
   );
 };
 
-exports.getTrackAlbumArtById = (req, res) => {
+exports.getTrackAlbumArtByTrackId = (req, res) => {
   let trackId = req.params.trackId;
   if (!ObjectID.isValid(req.params.trackId)) {
     res.status(400).json({ message: "Invalid trackId" });
@@ -669,29 +719,11 @@ exports.getTrackAlbumArtById = (req, res) => {
       if (err) return res.status(500).json({ message: "Error getting track album art" });
       if (!track) return res.status(404).json({ message: "No track associated with this Id" });
 
-      let trackAlbumArtGridFSId = new ObjectID(track.albumArtBinaryId);
-
-      let db = mongoose.connection.db;
-      var bucket = new mongodb.GridFSBucket(db, {
-        bucketName: "albumArtBinaryFiles"
-      });
-
-      res.set("content-type", "image/png");
-
-      // bucket.openDownloadStream Returns a readable stream (GridFSBucketReadStream) for streaming file data from GridFS.
-      var downloadStream = bucket.openDownloadStream(trackAlbumArtGridFSId);
-
-      downloadStream.on("data", chunk => {
-        res.write(chunk);
-      });
-
-      downloadStream.on("error", () => {
-        res.redirect("/static/defaultAlbumArt.png");
-      });
-
-      downloadStream.on("end", () => {
-        res.end();
-      });
+      if (track.albumArtURI) {
+        res.redirect(track.albumArtURI);
+      } else {
+        res.redirect("https://s3.eu-west-2.amazonaws.com/streamlo/static/defaultAlbumArt.png");
+      }
     });
   }
 };

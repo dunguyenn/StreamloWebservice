@@ -100,8 +100,11 @@ var trackSchema = new Schema({
     type: ObjectId,
     required: true
   },
-  albumArtBinaryId: {
-    type: ObjectId
+  albumArtURI: {
+    type: String
+  },
+  albumArtS3Uuid: {
+    type: String
   },
   comments: [
     {

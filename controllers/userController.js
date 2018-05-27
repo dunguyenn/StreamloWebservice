@@ -257,15 +257,7 @@ exports.getUserProfileImageById = (req, res) => {
 
       downloadStream.on("error", () => {
         // If this user has no profile picture associated with it - return default profile picture
-        var options = {
-          root: "public",
-          dotfiles: "deny",
-          headers: {
-            "content-type": "image/png"
-          }
-        };
-
-        res.sendFile("defaultProfilePicture.png", options);
+        res.redirect("https://s3.eu-west-2.amazonaws.com/streamlo/static/defaultProfilePicture.png");
       });
 
       downloadStream.on("end", () => {
